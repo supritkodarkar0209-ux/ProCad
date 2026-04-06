@@ -1,0 +1,2642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProCAD — Professional CAD Suite</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg0: #0e0f11;
+    --bg1: #161719;
+    --bg2: #1e2023;
+    --bg3: #26292e;
+    --bg4: #2f3338;
+    --border: #35393f;
+    --text0: #e8eaed;
+    --text1: #9aa0a6;
+    --text2: #5f6368;
+    --accent: #4fc3f7;
+    --accent2: #81c995;
+    --warn: #fdd663;
+    --danger: #f28b82;
+    --purple: #c58af9;
+    --orange: #ffb74d;
+    --font-ui: 'IBM Plex Sans', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+  .light {
+    --bg0: #f8f9fa;
+    --bg1: #ffffff;
+    --bg2: #f1f3f4;
+    --bg3: #e8eaed;
+    --bg4: #dadce0;
+    --border: #dadce0;
+    --text0: #202124;
+    --text1: #5f6368;
+    --text2: #9aa0a6;
+    --accent: #1a73e8;
+    --accent2: #188038;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-ui); background: var(--bg0); color: var(--text0); height: 100vh; display: flex; flex-direction: column; overflow: hidden; font-size: 13px; user-select: none; }
+
+  /* ── TITLE BAR ─────────────────────────────────── */
+  #titlebar {
+    height: 36px; background: var(--bg1); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 0; flex-shrink: 0;
+  }
+  .app-logo { padding: 0 14px; display: flex; align-items: center; gap: 7px; font-weight: 600; font-size: 13px; color: var(--accent); border-right: 1px solid var(--border); height: 100%; }
+  .app-logo svg { width: 18px; height: 18px; }
+  .menu-bar { display: flex; height: 100%; }
+  .menu-item { padding: 0 12px; display: flex; align-items: center; cursor: pointer; color: var(--text0); font-size: 12px; position: relative; }
+  .menu-item:hover { background: var(--bg3); }
+  .menu-dropdown { display: none; position: absolute; top: 100%; left: 0; background: var(--bg2); border: 1px solid var(--border); min-width: 180px; z-index: 1000; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+  .menu-item:hover .menu-dropdown { display: block; }
+  .menu-dropdown-item { padding: 7px 14px; cursor: pointer; display: flex; justify-content: space-between; gap: 20px; }
+  .menu-dropdown-item:hover { background: var(--bg3); color: var(--accent); }
+  .menu-dropdown-item span { color: var(--text2); font-size: 11px; font-family: var(--font-mono); }
+  .menu-sep { height: 1px; background: var(--border); margin: 3px 0; }
+  .titlebar-right { margin-left: auto; display: flex; align-items: center; gap: 4px; padding-right: 10px; }
+  .theme-btn { padding: 4px 10px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg3); color: var(--text1); cursor: pointer; font-size: 11px; font-family: var(--font-ui); }
+  .theme-btn:hover { background: var(--bg4); color: var(--text0); }
+
+  /* ── RIBBON TOOLBAR ─────────────────────────────── */
+  #ribbon {
+    background: var(--bg1); border-bottom: 1px solid var(--border);
+    display: flex; align-items: stretch; flex-shrink: 0; overflow-x: auto;
+  }
+  .ribbon-group { display: flex; flex-direction: column; border-right: 1px solid var(--border); padding: 4px 6px; min-width: fit-content; }
+  .ribbon-group-label { font-size: 10px; color: var(--text2); text-align: center; padding-top: 2px; letter-spacing: 0.05em; text-transform: uppercase; }
+  .ribbon-tools { display: flex; gap: 2px; flex: 1; align-items: center; }
+  .tool-btn {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 4px 6px; border-radius: 4px; cursor: pointer; gap: 2px;
+    border: 1px solid transparent; min-width: 42px; transition: all 0.1s;
+    color: var(--text1); background: transparent;
+  }
+  .tool-btn:hover { background: var(--bg3); color: var(--text0); border-color: var(--border); }
+  .tool-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+  .tool-btn svg { width: 18px; height: 18px; }
+  .tool-btn-label { font-size: 9px; white-space: nowrap; }
+
+  /* ── MAIN LAYOUT ────────────────────────────────── */
+  #main { display: flex; flex: 1; overflow: hidden; }
+
+  /* ── LEFT PANEL ─────────────────────────────────── */
+  #left-panel {
+    width: 220px; background: var(--bg1); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden;
+  }
+  .panel-tabs { display: flex; border-bottom: 1px solid var(--border); }
+  .panel-tab { flex: 1; padding: 7px 4px; text-align: center; cursor: pointer; font-size: 11px; color: var(--text2); border-bottom: 2px solid transparent; }
+  .panel-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .panel-content { flex: 1; overflow-y: auto; padding: 6px; }
+
+  /* Layer list */
+  .layer-item { display: flex; align-items: center; gap: 6px; padding: 5px 6px; border-radius: 4px; cursor: pointer; }
+  .layer-item:hover { background: var(--bg3); }
+  .layer-item.active { background: var(--bg3); }
+  .layer-color { width: 12px; height: 12px; border-radius: 2px; flex-shrink: 0; }
+  .layer-name { flex: 1; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .layer-actions { display: flex; gap: 3px; }
+  .layer-icon-btn { width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; border-radius: 3px; cursor: pointer; color: var(--text2); }
+  .layer-icon-btn:hover { color: var(--text0); background: var(--bg4); }
+  .add-layer-btn { display: flex; align-items: center; gap: 6px; padding: 6px; border-radius: 4px; cursor: pointer; color: var(--text2); font-size: 12px; border: 1px dashed var(--border); margin-top: 4px; }
+  .add-layer-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+  /* Props */
+  .prop-group { margin-bottom: 10px; }
+  .prop-group-label { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; padding: 4px 0 6px; }
+  .prop-row { display: flex; justify-content: space-between; align-items: center; padding: 3px 0; }
+  .prop-label { font-size: 11px; color: var(--text1); }
+  .prop-value { font-size: 11px; font-family: var(--font-mono); color: var(--text0); background: var(--bg3); padding: 2px 6px; border-radius: 3px; min-width: 70px; text-align: right; }
+  .prop-input { font-size: 11px; font-family: var(--font-mono); color: var(--text0); background: var(--bg3); padding: 2px 6px; border-radius: 3px; border: 1px solid var(--border); width: 80px; text-align: right; outline: none; }
+  .prop-input:focus { border-color: var(--accent); }
+
+  /* ── CANVAS AREA ────────────────────────────────── */
+  #canvas-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+  #view-tabs { display: flex; background: var(--bg2); border-bottom: 1px solid var(--border); align-items: center; padding: 0 6px; gap: 2px; }
+  .view-tab { padding: 5px 12px; border-radius: 4px 4px 0 0; font-size: 12px; cursor: pointer; color: var(--text2); display: flex; align-items: center; gap: 6px; }
+  .view-tab.active { background: var(--bg1); color: var(--text0); border: 1px solid var(--border); border-bottom: 1px solid var(--bg1); }
+  .view-tab-close { width: 14px; height: 14px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+  .view-tab-close:hover { background: var(--bg4); color: var(--danger); }
+
+  #viewport-container { flex: 1; position: relative; overflow: hidden; }
+  #canvas2d { position: absolute; top: 0; left: 0; cursor: crosshair; }
+  #canvas3d { position: absolute; top: 0; left: 0; display: none; }
+
+  /* View controls overlay */
+  #view-controls {
+    position: absolute; top: 10px; right: 10px; display: flex; flex-direction: column; gap: 4px; z-index: 10;
+  }
+  .view-ctrl-btn {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: 4px;
+    padding: 5px 10px; font-size: 11px; cursor: pointer; color: var(--text1); text-align: center;
+  }
+  .view-ctrl-btn:hover { background: var(--bg3); color: var(--text0); }
+  .view-ctrl-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+
+  /* Coordinates overlay */
+  #coords-bar {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: var(--bg1); border-top: 1px solid var(--border);
+    display: flex; align-items: center; gap: 16px; padding: 4px 12px; font-family: var(--font-mono); font-size: 11px; color: var(--text1);
+  }
+  .coord-item { display: flex; gap: 4px; }
+  .coord-label { color: var(--text2); }
+  .coord-value { color: var(--accent); min-width: 60px; }
+  #snap-indicator { margin-left: auto; display: flex; gap: 8px; }
+  .snap-badge { padding: 2px 8px; border-radius: 3px; background: var(--bg3); font-size: 10px; cursor: pointer; }
+  .snap-badge.on { background: var(--accent2); color: #000; }
+
+  /* Measurement display */
+  #meas-display {
+    position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+    background: var(--bg2); border: 1px solid var(--accent); border-radius: 6px;
+    padding: 6px 16px; font-family: var(--font-mono); font-size: 13px; color: var(--accent);
+    display: none; z-index: 10; white-space: nowrap;
+  }
+
+  /* ── RIGHT PANEL ─────────────────────────────────── */
+  #right-panel {
+    width: 200px; background: var(--bg1); border-left: 1px solid var(--border);
+    display: flex; flex-direction: column; flex-shrink: 0;
+  }
+  .right-panel-section { border-bottom: 1px solid var(--border); padding: 8px; }
+  .section-title { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+
+  /* Snap options */
+  .snap-opt { display: flex; align-items: center; gap: 6px; padding: 3px 0; font-size: 11px; color: var(--text1); cursor: pointer; }
+  .snap-opt input[type=checkbox] { accent-color: var(--accent); }
+
+  /* Color picker */
+  .color-row { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 6px; }
+  .color-swatch { width: 20px; height: 20px; border-radius: 3px; cursor: pointer; border: 2px solid transparent; }
+  .color-swatch.active { border-color: white; }
+
+  /* ── COMMAND LINE ────────────────────────────────── */
+  #cmdline {
+    height: 70px; background: var(--bg0); border-top: 1px solid var(--border);
+    display: flex; flex-direction: column; flex-shrink: 0;
+  }
+  #cmd-output { flex: 1; padding: 4px 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 1px; }
+  .cmd-msg { font-family: var(--font-mono); font-size: 11px; color: var(--text1); }
+  .cmd-msg.info { color: var(--accent); }
+  .cmd-msg.success { color: var(--accent2); }
+  .cmd-msg.warn { color: var(--warn); }
+  .cmd-msg.error { color: var(--danger); }
+  #cmd-input-row { display: flex; align-items: center; gap: 8px; padding: 0 12px 6px; }
+  #cmd-prompt { font-family: var(--font-mono); font-size: 12px; color: var(--accent2); }
+  #cmd-input {
+    flex: 1; background: var(--bg2); border: 1px solid var(--border); border-radius: 4px;
+    color: var(--text0); font-family: var(--font-mono); font-size: 12px; padding: 4px 8px; outline: none;
+  }
+  #cmd-input:focus { border-color: var(--accent); }
+
+  /* ── MODALS ──────────────────────────────────────── */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 2000; display: flex; align-items: center; justify-content: center; }
+  .modal { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 20px; min-width: 320px; max-width: 500px; box-shadow: 0 24px 48px rgba(0,0,0,0.5); }
+  .modal-title { font-size: 15px; font-weight: 600; margin-bottom: 14px; color: var(--text0); }
+  .modal-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+  .modal-label { font-size: 12px; color: var(--text1); width: 100px; }
+  .modal-input { flex: 1; background: var(--bg3); border: 1px solid var(--border); color: var(--text0); padding: 5px 8px; border-radius: 4px; font-family: var(--font-ui); font-size: 12px; outline: none; }
+  .modal-input:focus { border-color: var(--accent); }
+  .modal-btn-row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
+  .btn { padding: 6px 14px; border-radius: 4px; border: 1px solid var(--border); cursor: pointer; font-size: 12px; font-family: var(--font-ui); background: var(--bg3); color: var(--text0); }
+  .btn:hover { background: var(--bg4); }
+  .btn.primary { background: var(--accent); color: #000; border-color: var(--accent); }
+  .btn.primary:hover { opacity: 0.9; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg1); }
+  ::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 3px; }
+
+  /* ── CONTEXT MENU ──────────────────────────────── */
+  #ctx-menu { position: fixed; background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; padding: 4px 0; z-index: 3000; display: none; box-shadow: 0 8px 24px rgba(0,0,0,0.4); min-width: 160px; }
+  .ctx-item { padding: 6px 14px; font-size: 12px; cursor: pointer; color: var(--text0); }
+  .ctx-item:hover { background: var(--bg3); color: var(--accent); }
+  .ctx-sep { height: 1px; background: var(--border); margin: 3px 0; }
+
+  /* Tooltip */
+  .tooltip { position: absolute; background: var(--bg0); border: 1px solid var(--border); padding: 4px 8px; border-radius: 4px; font-size: 11px; color: var(--text1); pointer-events: none; z-index: 999; white-space: nowrap; display: none; }
+  #ruler-h, #ruler-v { position: absolute; background: var(--bg2); z-index: 5; }
+  #ruler-h { top: 0; left: 20px; right: 0; height: 20px; border-bottom: 1px solid var(--border); }
+  #ruler-v { top: 0; left: 0; width: 20px; bottom: 0; border-right: 1px solid var(--border); }
+</style>
+</head>
+<body>
+
+<!-- TITLE BAR -->
+<div id="titlebar">
+  <div class="app-logo">
+    <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M2 10L10 2L18 10L10 18L2 10Z" stroke="currentColor" stroke-width="1.5"/>
+      <circle cx="10" cy="10" r="3" fill="currentColor"/>
+      <line x1="2" y1="10" x2="18" y2="10" stroke="currentColor" stroke-width="0.5" stroke-dasharray="2 2"/>
+      <line x1="10" y1="2" x2="10" y2="18" stroke="currentColor" stroke-width="0.5" stroke-dasharray="2 2"/>
+    </svg>
+    ProCAD
+  </div>
+  <div class="menu-bar">
+    <div class="menu-item">File
+      <div class="menu-dropdown">
+        <div class="menu-dropdown-item" onclick="newFile()">New Drawing <span>Ctrl+N</span></div>
+        <div class="menu-dropdown-item" onclick="openFile()">Open... <span>Ctrl+O</span></div>
+        <div class="menu-sep"></div>
+        <div class="menu-dropdown-item" onclick="saveFile()">Save <span>Ctrl+S</span></div>
+        <div class="menu-dropdown-item" onclick="exportPNG()">Export PNG</div>
+        <div class="menu-dropdown-item" onclick="exportDXF()">Export DXF</div>
+        <div class="menu-dropdown-item" onclick="exportPDF()">Export PDF</div>
+        <div class="menu-sep"></div>
+        <div class="menu-dropdown-item" onclick="showAbout()">About</div>
+      </div>
+    </div>
+    <div class="menu-item">Edit
+      <div class="menu-dropdown">
+        <div class="menu-dropdown-item" onclick="undo()">Undo <span>Ctrl+Z</span></div>
+        <div class="menu-dropdown-item" onclick="redo()">Redo <span>Ctrl+Y</span></div>
+        <div class="menu-sep"></div>
+        <div class="menu-dropdown-item" onclick="selectAll()">Select All <span>Ctrl+A</span></div>
+        <div class="menu-dropdown-item" onclick="deleteSelected()">Delete <span>Del</span></div>
+        <div class="menu-sep"></div>
+        <div class="menu-dropdown-item" onclick="showSettings()">Preferences</div>
+      </div>
+    </div>
+    <div class="menu-item">View
+      <div class="menu-dropdown">
+        <div class="menu-dropdown-item" onclick="setView('top')">Top View</div>
+        <div class="menu-dropdown-item" onclick="setView('front')">Front View</div>
+        <div class="menu-dropdown-item" onclick="setView('side')">Side View</div>
+        <div class="menu-dropdown-item" onclick="setView('iso')">Isometric View</div>
+        <div class="menu-sep"></div>
+        <div class="menu-dropdown-item" onclick="toggle3D()">Toggle 2D/3D</div>
+        <div class="menu-dropdown-item" onclick="fitToWindow()">Fit to Window <span>F</span></div>
+        <div class="menu-dropdown-item" onclick="toggleGrid()">Toggle Grid <span>G</span></div>
+      </div>
+    </div>
+    <div class="menu-item">Draw
+      <div class="menu-dropdown">
+        <div class="menu-dropdown-item" onclick="setTool('line')">Line <span>L</span></div>
+        <div class="menu-dropdown-item" onclick="setTool('polyline')">Polyline <span>PL</span></div>
+        <div class="menu-dropdown-item" onclick="setTool('rect')">Rectangle <span>R</span></div>
+        <div class="menu-dropdown-item" onclick="setTool('circle')">Circle <span>C</span></div>
+        <div class="menu-dropdown-item" onclick="setTool('arc')">Arc <span>A</span></div>
+        <div class="menu-dropdown-item" onclick="setTool('text')">Text <span>T</span></div>
+        <div class="menu-dropdown-item" onclick="setTool('hatch')">Hatch <span>H</span></div>
+      </div>
+    </div>
+    <div class="menu-item">Modify
+      <div class="menu-dropdown">
+        <div class="menu-dropdown-item" onclick="setTool('move')">Move <span>M</span></div>
+        <div class="menu-dropdown-item" onclick="copySelected()">Copy <span>Ctrl+C</span></div>
+        <div class="menu-dropdown-item" onclick="setTool('rotate')">Rotate <span>RO</span></div>
+        <div class="menu-dropdown-item" onclick="setTool('scale_tool')">Scale <span>SC</span></div>
+        <div class="menu-dropdown-item" onclick="mirrorSelected()">Mirror</div>
+        <div class="menu-dropdown-item" onclick="deleteSelected()">Delete <span>Del</span></div>
+      </div>
+    </div>
+    <div class="menu-item">Measure
+      <div class="menu-dropdown">
+        <div class="menu-dropdown-item" onclick="setTool('measure_dist')">Distance</div>
+        <div class="menu-dropdown-item" onclick="setTool('measure_area')">Area</div>
+        <div class="menu-dropdown-item" onclick="setTool('measure_angle')">Angle</div>
+        <div class="menu-dropdown-item" onclick="setTool('measure_radius')">Radius/Arc</div>
+      </div>
+    </div>
+    <div class="menu-item">Help
+      <div class="menu-dropdown">
+        <div class="menu-dropdown-item" onclick="showHelp()">Keyboard Shortcuts</div>
+        <div class="menu-dropdown-item" onclick="showAbout()">About ProCAD</div>
+      </div>
+    </div>
+  </div>
+  <div class="titlebar-right">
+    <span style="font-size:11px;color:var(--text2)" id="doc-name">untitled.dxf</span>
+    <button class="theme-btn" onclick="toggleTheme()" id="theme-btn">☀ Light</button>
+  </div>
+</div>
+
+<!-- RIBBON -->
+<div id="ribbon">
+  <!-- Select -->
+  <div class="ribbon-group">
+    <div class="ribbon-tools">
+      <div class="tool-btn active" id="btn-select" onclick="setTool('select')" title="Select (Esc)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4l7 18 3-7 7-3z"/></svg>
+        <span class="tool-btn-label">Select</span>
+      </div>
+    </div>
+    <div class="ribbon-group-label">Select</div>
+  </div>
+  <!-- Draw -->
+  <div class="ribbon-group">
+    <div class="ribbon-tools">
+      <div class="tool-btn" id="btn-line" onclick="setTool('line')" title="Line (L)">
+        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" fill="none"><line x1="4" y1="20" x2="20" y2="4"/></svg>
+        <span class="tool-btn-label">Line</span>
+      </div>
+      <div class="tool-btn" id="btn-polyline" onclick="setTool('polyline')" title="Polyline (PL)">
+        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" fill="none"><polyline points="3,18 8,8 14,14 20,6"/></svg>
+        <span class="tool-btn-label">Polyline</span>
+      </div>
+      <div class="tool-btn" id="btn-rect" onclick="setTool('rect')" title="Rectangle (R)">
+        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" fill="none"><rect x="3" y="5" width="18" height="14" rx="1"/></svg>
+        <span class="tool-btn-label">Rect</span>
+      </div>
+      <div class="tool-btn" id="btn-circle" onclick="setTool('circle')" title="Circle (C)">
+        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" fill="none"><circle cx="12" cy="12" r="9"/></svg>
+        <span class="tool-btn-label">Circle</span>
+      </div>
+      <div class="tool-btn" id="btn-arc" onclick="setTool('arc')" title="Arc (A)">
+        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" fill="none"><path d="M4 20 Q12 4 20 20" fill="none"/></svg>
+        <span class="tool-btn-label">Arc</span>
+      </div>
+      <div class="tool-btn" id="btn-text" onclick="setTool('text')" title="Text (T)">
+        <svg viewBox="0 0 24 24" fill="currentColor"><text x="4" y="18" font-size="16" font-family="serif" font-weight="bold">T</text></svg>
+        <span class="tool-btn-label">Text</span>
+      </div>
+      <div class="tool-btn" id="btn-leader" onclick="setTool('leader')" title="Leader">
+        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" fill="none"><line x1="4" y1="20" x2="14" y2="10"/><line x1="14" y1="10" x2="20" y2="10"/><polygon points="4,20 7,15 8,19" fill="currentColor" stroke="none"/></svg>
+        <span class="tool-btn-label">Leader</span>
+      </div>
+      <div class="tool-btn" id="btn-hatch" onclick="setTool('hatch')" title="Hatch (H)">
+        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1" fill="none"><rect x="3" y="3" width="18" height="18"/><line x1="3" y1="9" x2="9" y2="3"/><line x1="3" y1="15" x2="15" y2="3"/><line x1="3" y1="21" x2="21" y2="3"/><line x1="9" y1="21" x2="21" y2="9"/><line x1="15" y1="21" x2="21" y2="15"/></svg>
+        <span class="tool-btn-label">Hatch</span>
+      </div>
+      <div class="tool-btn" id="btn-sketch" onclick="setTool('sketch')" title="Free Sketch">
+        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" fill="none"><path d="M3 17 Q8 8 12 12 Q16 16 21 7"/></svg>
+        <span class="tool-btn-label">Sketch</span>
+      </div>
+    </div>
+    <div class="ribbon-group-label">Draw</div>
+  </div>
+  <!-- Measure -->
+  <div class="ribbon-group">
+    <div class="ribbon-tools">
+      <div class="tool-btn" id="btn-measure_dist" onclick="setTool('measure_dist')" title="Measure Distance">
+        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" fill="none"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="9" x2="3" y2="15"/><line x1="21" y1="9" x2="21" y2="15"/></svg>
+        <span class="tool-btn-label">Distance</span>
+      </div>
+      <div class="tool-btn" id="btn-measure_area" onclick="setTool('measure_area')" title="Measure Area">
+        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" fill="none"><polygon points="3,21 12,3 21,21"/><text x="10" y="17" font-size="6" fill="currentColor" stroke="none">A</text></svg>
+        <span class="tool-btn-label">Area</span>
+      </div>
+      <div class="tool-btn" id="btn-measure_angle" onclick="setTool('measure_angle')" title="Measure Angle">
+        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" fill="none"><line x1="3" y1="21" x2="21" y2="21"/><line x1="3" y1="21" x2="14" y2="5"/><path d="M8 21 A6 6 0 0 1 3 15" fill="none" stroke-width="1"/></svg>
+        <span class="tool-btn-label">Angle</span>
+      </div>
+      <div class="tool-btn" id="btn-measure_radius" onclick="setTool('measure_radius')" title="Radius">
+        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" fill="none"><circle cx="12" cy="12" r="8"/><line x1="12" y1="12" x2="20" y2="12"/><text x="13" y="11" font-size="5" fill="currentColor" stroke="none">r</text></svg>
+        <span class="tool-btn-label">Radius</span>
+      </div>
+    </div>
+    <div class="ribbon-group-label">Measure</div>
+  </div>
+  <!-- Modify -->
+  <div class="ribbon-group">
+    <div class="ribbon-tools">
+      <div class="tool-btn" id="btn-move" onclick="setTool('move')" title="Move (M)">
+        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" fill="none"><path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/></svg>
+        <span class="tool-btn-label">Move</span>
+      </div>
+      <div class="tool-btn" id="btn-rotate" onclick="setTool('rotate')" title="Rotate (RO)">
+        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" fill="none"><path d="M21 12A9 9 0 1 1 12 3"/><polyline points="16,3 21,3 21,8"/></svg>
+        <span class="tool-btn-label">Rotate</span>
+      </div>
+      <div class="tool-btn" id="btn-scale_tool" onclick="setTool('scale_tool')" title="Scale (SC)">
+        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" fill="none"><rect x="3" y="3" width="8" height="8"/><rect x="13" y="13" width="8" height="8"/><line x1="11" y1="7" x2="13" y2="7"/><line x1="17" y1="11" x2="17" y2="13"/></svg>
+        <span class="tool-btn-label">Scale</span>
+      </div>
+      <div class="tool-btn" id="btn-offset" onclick="setTool('offset')" title="Offset (O)">
+        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" fill="none"><rect x="4" y="4" width="16" height="16"/><rect x="7" y="7" width="10" height="10"/></svg>
+        <span class="tool-btn-label">Offset</span>
+      </div>
+      <div class="tool-btn" id="btn-mirror_tool" onclick="mirrorSelected()" title="Mirror">
+        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" fill="none"><line x1="12" y1="3" x2="12" y2="21" stroke-dasharray="2 2"/><polygon points="3,6 10,12 3,18" fill="none"/><polygon points="21,6 14,12 21,18" fill="none"/></svg>
+        <span class="tool-btn-label">Mirror</span>
+      </div>
+      <div class="tool-btn" id="btn-delete" onclick="deleteSelected()" title="Delete (Del)">
+        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" fill="none"><polyline points="3,6 5,6 21,6"/><path d="M19,6l-1,14H6L5,6"/><path d="M10,11v6M14,11v6"/><path d="M9,6V4h6v2"/></svg>
+        <span class="tool-btn-label">Delete</span>
+      </div>
+    </div>
+    <div class="ribbon-group-label">Modify</div>
+  </div>
+  <!-- View -->
+  <div class="ribbon-group">
+    <div class="ribbon-tools">
+      <div class="tool-btn" id="btn-zoom_in" onclick="zoomIn()" title="Zoom In (+)">
+        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" fill="none"><circle cx="11" cy="11" r="7"/><line x1="16" y1="16" x2="21" y2="21"/><line x1="8" y1="11" x2="14" y2="11"/><line x1="11" y1="8" x2="11" y2="14"/></svg>
+        <span class="tool-btn-label">Zoom +</span>
+      </div>
+      <div class="tool-btn" id="btn-zoom_out" onclick="zoomOut()" title="Zoom Out (-)">
+        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" fill="none"><circle cx="11" cy="11" r="7"/><line x1="16" y1="16" x2="21" y2="21"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+        <span class="tool-btn-label">Zoom -</span>
+      </div>
+      <div class="tool-btn" id="btn-fit" onclick="fitToWindow()" title="Fit (F)">
+        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" fill="none"><polyline points="15,3 21,3 21,9"/><polyline points="9,21 3,21 3,15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+        <span class="tool-btn-label">Fit</span>
+      </div>
+      <div class="tool-btn" id="btn-grid" onclick="toggleGrid()" title="Grid (G)">
+        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1" fill="none"><line x1="3" y1="8" x2="21" y2="8"/><line x1="3" y1="14" x2="21" y2="14"/><line x1="8" y1="3" x2="8" y2="21"/><line x1="14" y1="3" x2="14" y2="21"/></svg>
+        <span class="tool-btn-label">Grid</span>
+      </div>
+      <div class="tool-btn" id="btn-toggle3d" onclick="toggle3D()" title="3D View">
+        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" fill="none"><path d="M12 3L21 8V16L12 21L3 16V8L12 3Z"/><line x1="12" y1="3" x2="12" y2="21"/><line x1="3" y1="8" x2="21" y2="16"/><line x1="21" y1="8" x2="3" y2="16"/></svg>
+        <span class="tool-btn-label">3D</span>
+      </div>
+    </div>
+    <div class="ribbon-group-label">View</div>
+  </div>
+  <!-- Undo/Redo -->
+  <div class="ribbon-group">
+    <div class="ribbon-tools">
+      <div class="tool-btn" onclick="undo()" title="Undo (Ctrl+Z)">
+        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" fill="none"><polyline points="9,14 4,9 9,4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>
+        <span class="tool-btn-label">Undo</span>
+      </div>
+      <div class="tool-btn" onclick="redo()" title="Redo (Ctrl+Y)">
+        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" fill="none"><polyline points="15,14 20,9 15,4"/><path d="M4 20v-7a4 4 0 0 1 4-4h12"/></svg>
+        <span class="tool-btn-label">Redo</span>
+      </div>
+    </div>
+    <div class="ribbon-group-label">History</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+  <!-- LEFT PANEL -->
+  <div id="left-panel">
+    <div class="panel-tabs">
+      <div class="panel-tab active" onclick="switchPanel('layers')">Layers</div>
+      <div class="panel-tab" onclick="switchPanel('properties')">Properties</div>
+      <div class="panel-tab" onclick="switchPanel('objects')">Objects</div>
+    </div>
+    <div class="panel-content" id="layers-panel">
+      <div id="layer-list"></div>
+      <div class="add-layer-btn" onclick="addLayer()">
+        <svg width="12" height="12" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Layer
+      </div>
+    </div>
+    <div class="panel-content" id="properties-panel" style="display:none">
+      <div class="prop-group">
+        <div class="prop-group-label">Selection</div>
+        <div class="prop-row"><span class="prop-label">Objects</span><span class="prop-value" id="prop-count">0</span></div>
+        <div class="prop-row"><span class="prop-label">Type</span><span class="prop-value" id="prop-type">—</span></div>
+        <div class="prop-row"><span class="prop-label">Layer</span><span class="prop-value" id="prop-layer">—</span></div>
+      </div>
+      <div class="prop-group">
+        <div class="prop-group-label">Geometry</div>
+        <div class="prop-row"><span class="prop-label">X</span><span class="prop-value" id="prop-x">—</span></div>
+        <div class="prop-row"><span class="prop-label">Y</span><span class="prop-value" id="prop-y">—</span></div>
+        <div class="prop-row"><span class="prop-label">Width</span><span class="prop-value" id="prop-w">—</span></div>
+        <div class="prop-row"><span class="prop-label">Height</span><span class="prop-value" id="prop-h">—</span></div>
+        <div class="prop-row"><span class="prop-label">Length</span><span class="prop-value" id="prop-len">—</span></div>
+        <div class="prop-row"><span class="prop-label">Angle</span><span class="prop-value" id="prop-ang">—</span></div>
+      </div>
+      <div class="prop-group">
+        <div class="prop-group-label">Style</div>
+        <div class="prop-row"><span class="prop-label">Color</span><span class="prop-value" id="prop-color">—</span></div>
+        <div class="prop-row"><span class="prop-label">Line width</span><span class="prop-value" id="prop-lw">—</span></div>
+      </div>
+    </div>
+    <div class="panel-content" id="objects-panel" style="display:none">
+      <div id="object-list" style="display:flex;flex-direction:column;gap:2px;"></div>
+    </div>
+  </div>
+
+  <!-- CANVAS AREA -->
+  <div id="canvas-area">
+    <div id="view-tabs">
+      <div class="view-tab active" id="tab-model">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18"/></svg>
+        Model
+      </div>
+      <div class="view-tab" id="tab-layout" onclick="switchToLayout()">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20"/><rect x="5" y="5" width="14" height="14"/></svg>
+        Layout 1
+      </div>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:4px;padding-right:4px;">
+        <div style="font-size:11px;color:var(--text2)" id="zoom-label">100%</div>
+      </div>
+    </div>
+    <div id="viewport-container">
+      <canvas id="ruler-h"></canvas>
+      <canvas id="ruler-v"></canvas>
+      <canvas id="canvas2d"></canvas>
+      <canvas id="canvas3d"></canvas>
+      <div id="view-controls">
+        <div class="view-ctrl-btn active" id="vcbtn-top" onclick="setView('top')">Top</div>
+        <div class="view-ctrl-btn" id="vcbtn-front" onclick="setView('front')">Front</div>
+        <div class="view-ctrl-btn" id="vcbtn-side" onclick="setView('side')">Side</div>
+        <div class="view-ctrl-btn" id="vcbtn-iso" onclick="setView('iso')">Iso</div>
+      </div>
+      <div id="meas-display"></div>
+    </div>
+    <div id="coords-bar">
+      <div class="coord-item"><span class="coord-label">X:</span><span class="coord-value" id="cx">0.000</span></div>
+      <div class="coord-item"><span class="coord-label">Y:</span><span class="coord-value" id="cy">0.000</span></div>
+      <div class="coord-item"><span class="coord-label">Z:</span><span class="coord-value" id="cz">0.000</span></div>
+      <div class="coord-item"><span class="coord-label">Δ:</span><span class="coord-value" id="cdelta">—</span></div>
+      <div id="snap-indicator">
+        <span class="snap-badge on" id="snap-grid-btn" onclick="toggleSnapGrid()">GRID</span>
+        <span class="snap-badge on" id="snap-end-btn" onclick="toggleSnapEnd()">END</span>
+        <span class="snap-badge on" id="snap-mid-btn" onclick="toggleSnapMid()">MID</span>
+        <span class="snap-badge on" id="snap-cen-btn" onclick="toggleSnapCen()">CEN</span>
+        <span class="snap-badge" id="snap-perp-btn" onclick="toggleSnapPerp()">PERP</span>
+        <span class="snap-badge" id="ortho-btn" onclick="toggleOrtho()">ORTHO</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div id="right-panel">
+    <div class="right-panel-section">
+      <div class="section-title">Stroke Color</div>
+      <div class="color-row" id="color-swatches"></div>
+      <div style="display:flex;gap:6px;margin-top:4px;align-items:center;">
+        <input type="color" id="custom-color" value="#4fc3f7" style="width:28px;height:28px;border:none;background:none;cursor:pointer;padding:0;">
+        <span style="font-size:11px;color:var(--text1)">Custom</span>
+      </div>
+    </div>
+    <div class="right-panel-section">
+      <div class="section-title">Line Width</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <div class="color-swatch active" style="background:var(--bg4);border-color:var(--accent)" onclick="setLineWidth(1)" title="1px"><svg viewBox="0 0 20 20" width="20" height="20"><line x1="3" y1="10" x2="17" y2="10" stroke="var(--text0)" stroke-width="1"/></svg></div>
+        <div class="color-swatch" style="background:var(--bg4)" onclick="setLineWidth(2)" title="2px"><svg viewBox="0 0 20 20" width="20" height="20"><line x1="3" y1="10" x2="17" y2="10" stroke="var(--text0)" stroke-width="2"/></svg></div>
+        <div class="color-swatch" style="background:var(--bg4)" onclick="setLineWidth(3)" title="3px"><svg viewBox="0 0 20 20" width="20" height="20"><line x1="3" y1="10" x2="17" y2="10" stroke="var(--text0)" stroke-width="3"/></svg></div>
+        <div class="color-swatch" style="background:var(--bg4)" onclick="setLineWidth(5)" title="5px"><svg viewBox="0 0 20 20" width="20" height="20"><line x1="3" y1="10" x2="17" y2="10" stroke="var(--text0)" stroke-width="5"/></svg></div>
+      </div>
+    </div>
+    <div class="right-panel-section">
+      <div class="section-title">Line Style</div>
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <div onclick="setLineDash([])" style="cursor:pointer;padding:3px 6px;border-radius:3px;background:var(--bg3)"><svg viewBox="0 0 80 10" width="80" height="10"><line x1="0" y1="5" x2="80" y2="5" stroke="var(--text0)" stroke-width="1.5"/></svg></div>
+        <div onclick="setLineDash([6,4])" style="cursor:pointer;padding:3px 6px;border-radius:3px;background:var(--bg3)"><svg viewBox="0 0 80 10" width="80" height="10"><line x1="0" y1="5" x2="80" y2="5" stroke="var(--text0)" stroke-width="1.5" stroke-dasharray="6 4"/></svg></div>
+        <div onclick="setLineDash([2,3])" style="cursor:pointer;padding:3px 6px;border-radius:3px;background:var(--bg3)"><svg viewBox="0 0 80 10" width="80" height="10"><line x1="0" y1="5" x2="80" y2="5" stroke="var(--text0)" stroke-width="1.5" stroke-dasharray="2 3"/></svg></div>
+        <div onclick="setLineDash([10,3,2,3])" style="cursor:pointer;padding:3px 6px;border-radius:3px;background:var(--bg3)"><svg viewBox="0 0 80 10" width="80" height="10"><line x1="0" y1="5" x2="80" y2="5" stroke="var(--text0)" stroke-width="1.5" stroke-dasharray="10 3 2 3"/></svg></div>
+      </div>
+    </div>
+    <div class="right-panel-section">
+      <div class="section-title">Snap</div>
+      <label class="snap-opt"><input type="checkbox" id="chk-grid" checked onchange="snapSettings.grid=this.checked"> Grid snap</label>
+      <label class="snap-opt"><input type="checkbox" id="chk-end" checked onchange="snapSettings.endpoint=this.checked"> Endpoint</label>
+      <label class="snap-opt"><input type="checkbox" id="chk-mid" checked onchange="snapSettings.midpoint=this.checked"> Midpoint</label>
+      <label class="snap-opt"><input type="checkbox" id="chk-cen" checked onchange="snapSettings.center=this.checked"> Center</label>
+      <label class="snap-opt"><input type="checkbox" id="chk-perp" onchange="snapSettings.perpendicular=this.checked"> Perpendicular</label>
+    </div>
+    <div class="right-panel-section">
+      <div class="section-title">Grid</div>
+      <div class="prop-row"><span class="prop-label">Spacing</span><input class="prop-input" type="number" value="20" id="grid-spacing" onchange="gridSpacing=+this.value;render()"></div>
+      <div class="prop-row"><span class="prop-label">Units</span>
+        <select class="prop-input" id="unit-select" style="text-align:left" onchange="currentUnits=this.value">
+          <option value="mm">mm</option>
+          <option value="cm">cm</option>
+          <option value="m">m</option>
+          <option value="in">in</option>
+          <option value="ft">ft</option>
+        </select>
+      </div>
+    </div>
+    <div class="right-panel-section" style="flex:1;overflow-y:auto;">
+      <div class="section-title">3D Shapes</div>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <button class="btn" onclick="add3DBox()">Add Box</button>
+        <button class="btn" onclick="add3DSphere()">Add Sphere</button>
+        <button class="btn" onclick="add3DCylinder()">Add Cylinder</button>
+        <button class="btn" onclick="add3DCone()">Add Cone</button>
+        <button class="btn" onclick="add3DTorus()">Add Torus</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- COMMAND LINE -->
+<div id="cmdline">
+  <div id="cmd-output"></div>
+  <div id="cmd-input-row">
+    <span id="cmd-prompt">Command:</span>
+    <input id="cmd-input" type="text" placeholder="Enter command (e.g. LINE, CIRCLE, ZOOM, HELP)..." autocomplete="off" spellcheck="false">
+  </div>
+</div>
+
+<!-- CONTEXT MENU -->
+<div id="ctx-menu">
+  <div class="ctx-item" onclick="setTool('select');hideCtx()">Select</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" onclick="copySelected();hideCtx()">Copy</div>
+  <div class="ctx-item" onclick="pasteObjects();hideCtx()">Paste</div>
+  <div class="ctx-item" onclick="deleteSelected();hideCtx()">Delete</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" onclick="setTool('move');hideCtx()">Move</div>
+  <div class="ctx-item" onclick="setTool('rotate');hideCtx()">Rotate</div>
+  <div class="ctx-item" onclick="mirrorSelected();hideCtx()">Mirror</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" onclick="groupSelected();hideCtx()">Group</div>
+  <div class="ctx-item" onclick="bringToFront();hideCtx()">Bring to Front</div>
+  <div class="ctx-item" onclick="sendToBack();hideCtx()">Send to Back</div>
+</div>
+
+<!-- MODALS -->
+<div id="modal-overlay" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modal-box">
+    <div class="modal-title" id="modal-title"></div>
+    <div id="modal-body"></div>
+    <div class="modal-btn-row" id="modal-btns"></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════════
+const canvas = document.getElementById('canvas2d');
+const ctx = canvas.getContext('2d');
+
+let objects = [];         // All drawn objects
+let selectedObjs = [];    // Currently selected
+let undoStack = [];       // History
+let redoStack = [];
+let clipboard = [];
+
+let currentTool = 'select';
+let currentColor = '#4fc3f7';
+let currentLineWidth = 1;
+let currentLineDash = [];
+let currentLayer = 0;
+let currentUnits = 'mm';
+
+let gridVisible = true;
+let gridSpacing = 20;
+let orthoMode = false;
+let is3D = false;
+let currentView = 'top';
+
+let panX = 0, panY = 0;
+let zoom = 1;
+let isPanning = false;
+let panStart = { x: 0, y: 0 };
+
+// Tool state
+let toolState = {};      // per-tool ephemeral state
+let mousePos = { x: 0, y: 0 };
+let snapPos = { x: 0, y: 0 };
+let snapType = null;
+
+let snapSettings = { grid: true, endpoint: true, midpoint: true, center: true, perpendicular: false };
+
+let layers = [
+  { name: '0', color: '#ffffff', visible: true, locked: false },
+  { name: 'Dimensions', color: '#fdd663', visible: true, locked: false },
+  { name: 'Center Lines', color: '#f28b82', visible: true, locked: false },
+  { name: 'Hidden', color: '#9aa0a6', visible: true, locked: false },
+];
+
+// ══════════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════════
+function init() {
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+  setupCanvasEvents();
+  setupKeyboard();
+  setupColorSwatches();
+  renderLayers();
+  render();
+  cmdLog('ProCAD ready. Type HELP for commands.', 'info');
+  // Auto-save every 60s
+  setInterval(autoSave, 60000);
+}
+
+function resizeCanvas() {
+  const container = document.getElementById('viewport-container');
+  const w = container.clientWidth;
+  const h = container.clientHeight - 24; // coords bar
+  canvas.width = w;
+  canvas.height = h;
+  canvas.style.top = '0';
+  canvas.style.left = '0';
+  const c3d = document.getElementById('canvas3d');
+  c3d.width = w;
+  c3d.height = h;
+  if (renderer3d) {
+    renderer3d.setSize(w, h);
+    camera3d.aspect = w / h;
+    camera3d.updateProjectionMatrix();
+  }
+  render();
+}
+
+// ══════════════════════════════════════════════════════════
+//  COORDINATE TRANSFORM
+// ══════════════════════════════════════════════════════════
+function worldToScreen(wx, wy) {
+  return { x: wx * zoom + panX, y: wy * zoom + panY };
+}
+function screenToWorld(sx, sy) {
+  return { x: (sx - panX) / zoom, y: (sy - panY) / zoom };
+}
+
+// ══════════════════════════════════════════════════════════
+//  SNAPPING
+// ══════════════════════════════════════════════════════════
+function computeSnap(sx, sy) {
+  let wx = (sx - panX) / zoom;
+  let wy = (sy - panY) / zoom;
+  let best = null, bestDist = 15 / zoom;
+  let snapT = null;
+
+  if (snapSettings.endpoint) {
+    for (const obj of objects) {
+      const pts = getObjectSnapPoints(obj, 'endpoint');
+      for (const p of pts) {
+        const d = Math.hypot(p.x - wx, p.y - wy);
+        if (d < bestDist) { bestDist = d; best = p; snapT = 'endpoint'; }
+      }
+    }
+  }
+  if (snapSettings.midpoint && !best) {
+    for (const obj of objects) {
+      const pts = getObjectSnapPoints(obj, 'midpoint');
+      for (const p of pts) {
+        const d = Math.hypot(p.x - wx, p.y - wy);
+        if (d < bestDist) { bestDist = d; best = p; snapT = 'midpoint'; }
+      }
+    }
+  }
+  if (snapSettings.center && !best) {
+    for (const obj of objects) {
+      const pts = getObjectSnapPoints(obj, 'center');
+      for (const p of pts) {
+        const d = Math.hypot(p.x - wx, p.y - wy);
+        if (d < bestDist) { bestDist = d; best = p; snapT = 'center'; }
+      }
+    }
+  }
+  if (snapSettings.grid && !best) {
+    const gs = gridSpacing;
+    const gx = Math.round(wx / gs) * gs;
+    const gy = Math.round(wy / gs) * gs;
+    const d = Math.hypot(gx - wx, gy - wy);
+    if (d < bestDist) { best = { x: gx, y: gy }; snapT = 'grid'; }
+  }
+
+  if (orthoMode && toolState.firstPoint) {
+    const fp = toolState.firstPoint;
+    const dx = Math.abs((best || { x: wx, y: wy }).x - fp.x);
+    const dy = Math.abs((best || { x: wx, y: wy }).y - fp.y);
+    if (!best) best = { x: wx, y: wy };
+    if (dx > dy) best = { x: best.x, y: fp.y };
+    else best = { x: fp.x, y: best.y };
+  }
+
+  return { pos: best || { x: wx, y: wy }, type: snapT };
+}
+
+function getObjectSnapPoints(obj, type) {
+  const pts = [];
+  if (obj.type === 'line') {
+    if (type === 'endpoint') {
+      pts.push({ x: obj.x1, y: obj.y1 }, { x: obj.x2, y: obj.y2 });
+    } else if (type === 'midpoint') {
+      pts.push({ x: (obj.x1 + obj.x2) / 2, y: (obj.y1 + obj.y2) / 2 });
+    }
+  } else if (obj.type === 'circle') {
+    if (type === 'center') pts.push({ x: obj.cx, y: obj.cy });
+    if (type === 'endpoint') {
+      pts.push({ x: obj.cx + obj.r, y: obj.cy });
+      pts.push({ x: obj.cx - obj.r, y: obj.cy });
+      pts.push({ x: obj.cx, y: obj.cy + obj.r });
+      pts.push({ x: obj.cx, y: obj.cy - obj.r });
+    }
+  } else if (obj.type === 'rect') {
+    if (type === 'endpoint') {
+      pts.push({ x: obj.x, y: obj.y }, { x: obj.x + obj.w, y: obj.y });
+      pts.push({ x: obj.x + obj.w, y: obj.y + obj.h }, { x: obj.x, y: obj.y + obj.h });
+    }
+    if (type === 'midpoint') {
+      pts.push({ x: obj.x + obj.w / 2, y: obj.y });
+      pts.push({ x: obj.x + obj.w, y: obj.y + obj.h / 2 });
+      pts.push({ x: obj.x + obj.w / 2, y: obj.y + obj.h });
+      pts.push({ x: obj.x, y: obj.y + obj.h / 2 });
+    }
+    if (type === 'center') pts.push({ x: obj.x + obj.w / 2, y: obj.y + obj.h / 2 });
+  } else if (obj.type === 'polyline' && obj.points) {
+    if (type === 'endpoint') pts.push(obj.points[0], obj.points[obj.points.length - 1]);
+    if (type === 'midpoint') {
+      for (let i = 0; i < obj.points.length - 1; i++) {
+        pts.push({ x: (obj.points[i].x + obj.points[i + 1].x) / 2, y: (obj.points[i].y + obj.points[i + 1].y) / 2 });
+      }
+    }
+  }
+  return pts;
+}
+
+// ══════════════════════════════════════════════════════════
+//  RENDER
+// ══════════════════════════════════════════════════════════
+function render() {
+  if (is3D) { render3D(); return; }
+  const w = canvas.width, h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+
+  const isDark = !document.body.classList.contains('light');
+  ctx.fillStyle = isDark ? '#0e0f11' : '#f8f9fa';
+  ctx.fillRect(0, 0, w, h);
+
+  if (gridVisible) drawGrid();
+  drawAxes();
+
+  // Draw all objects
+  for (const obj of objects) {
+    if (!isLayerVisible(obj.layer)) continue;
+    drawObject(obj, selectedObjs.includes(obj));
+  }
+
+  // Draw current tool preview
+  drawToolPreview();
+
+  // Draw snap indicator
+  if (snapType) drawSnapIndicator(snapPos);
+
+  // Draw selection box
+  if (toolState.selecting) {
+    const s = toolState.selBox;
+    ctx.save();
+    ctx.strokeStyle = '#4fc3f7';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 3]);
+    ctx.fillStyle = 'rgba(79,195,247,0.07)';
+    ctx.fillRect(s.x, s.y, s.w, s.h);
+    ctx.strokeRect(s.x, s.y, s.w, s.h);
+    ctx.restore();
+  }
+
+  updateZoomLabel();
+  updateCoords();
+  updateObjectList();
+  updateProperties();
+}
+
+function drawGrid() {
+  const isDark = !document.body.classList.contains('light');
+  ctx.save();
+  const gs = gridSpacing * zoom;
+  if (gs < 5) { ctx.restore(); return; }
+  ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.06)';
+  ctx.lineWidth = 0.5;
+
+  const offX = ((panX % gs) + gs) % gs;
+  const offY = ((panY % gs) + gs) % gs;
+
+  for (let x = offX; x < canvas.width; x += gs) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+  }
+  for (let y = offY; y < canvas.height; y += gs) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+  }
+
+  // Major grid every 5
+  if (gs >= 10) {
+    const mg = gs * 5;
+    const moffX = ((panX % mg) + mg) % mg;
+    const moffY = ((panY % mg) + mg) % mg;
+    ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.1)';
+    ctx.lineWidth = 0.5;
+    for (let x = moffX; x < canvas.width; x += mg) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+    }
+    for (let y = moffY; y < canvas.height; y += mg) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+function drawAxes() {
+  const ox = worldToScreen(0, 0);
+  const isDark = !document.body.classList.contains('light');
+  ctx.save();
+  ctx.lineWidth = 1;
+  // X
+  ctx.strokeStyle = '#f28b82'; ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(0, ox.y); ctx.lineTo(canvas.width, ox.y); ctx.stroke();
+  // Y
+  ctx.strokeStyle = '#81c995';
+  ctx.beginPath(); ctx.moveTo(ox.x, 0); ctx.lineTo(ox.x, canvas.height); ctx.stroke();
+  ctx.restore();
+}
+
+function drawObject(obj, selected) {
+  ctx.save();
+  const layer = layers[obj.layer] || layers[0];
+  ctx.strokeStyle = obj.color || layer.color;
+  ctx.lineWidth = (obj.lineWidth || 1) / zoom * zoom; // screen px
+  ctx.setLineDash(obj.lineDash || []);
+  ctx.fillStyle = obj.fillColor || 'transparent';
+  ctx.font = `${(obj.fontSize || 14) * zoom}px IBM Plex Sans`;
+
+  if (selected) {
+    ctx.shadowColor = '#4fc3f7';
+    ctx.shadowBlur = 6;
+    ctx.strokeStyle = '#4fc3f7';
+  }
+
+  const s = (p) => worldToScreen(p.x, p.y);
+
+  switch (obj.type) {
+    case 'line': {
+      const p1 = s({ x: obj.x1, y: obj.y1 });
+      const p2 = s({ x: obj.x2, y: obj.y2 });
+      ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+      break;
+    }
+    case 'polyline': {
+      if (!obj.points || obj.points.length < 2) break;
+      ctx.beginPath();
+      const p0 = s(obj.points[0]);
+      ctx.moveTo(p0.x, p0.y);
+      for (let i = 1; i < obj.points.length; i++) {
+        const p = s(obj.points[i]); ctx.lineTo(p.x, p.y);
+      }
+      if (obj.closed) ctx.closePath();
+      ctx.stroke();
+      if (obj.closed && obj.fillColor && obj.fillColor !== 'transparent') ctx.fill();
+      break;
+    }
+    case 'rect': {
+      const p = s({ x: obj.x, y: obj.y });
+      const pw = obj.w * zoom, ph = obj.h * zoom;
+      ctx.strokeRect(p.x, p.y, pw, ph);
+      if (obj.fillColor && obj.fillColor !== 'transparent') ctx.fillRect(p.x, p.y, pw, ph);
+      break;
+    }
+    case 'circle': {
+      const c = s({ x: obj.cx, y: obj.cy });
+      ctx.beginPath(); ctx.arc(c.x, c.y, obj.r * zoom, 0, Math.PI * 2); ctx.stroke();
+      if (obj.fillColor && obj.fillColor !== 'transparent') ctx.fill();
+      break;
+    }
+    case 'arc': {
+      const c = s({ x: obj.cx, y: obj.cy });
+      ctx.beginPath(); ctx.arc(c.x, c.y, obj.r * zoom, obj.startAngle, obj.endAngle); ctx.stroke();
+      break;
+    }
+    case 'text': {
+      const p = s({ x: obj.x, y: obj.y });
+      ctx.fillStyle = obj.color || layer.color;
+      ctx.fillText(obj.text, p.x, p.y);
+      break;
+    }
+    case 'leader': {
+      if (!obj.points || obj.points.length < 2) break;
+      ctx.beginPath();
+      const p0 = s(obj.points[0]); ctx.moveTo(p0.x, p0.y);
+      for (let i = 1; i < obj.points.length; i++) {
+        const p = s(obj.points[i]); ctx.lineTo(p.x, p.y);
+      }
+      ctx.stroke();
+      // Arrow
+      const last = s(obj.points[obj.points.length - 1]);
+      const prev = s(obj.points[obj.points.length - 2]);
+      const angle = Math.atan2(last.y - prev.y, last.x - prev.x);
+      const al = 10;
+      ctx.beginPath();
+      ctx.moveTo(last.x, last.y);
+      ctx.lineTo(last.x - al * Math.cos(angle - 0.4), last.y - al * Math.sin(angle - 0.4));
+      ctx.lineTo(last.x - al * Math.cos(angle + 0.4), last.y - al * Math.sin(angle + 0.4));
+      ctx.closePath(); ctx.fillStyle = ctx.strokeStyle; ctx.fill();
+      if (obj.text) {
+        const tp = s(obj.points[0]);
+        ctx.fillStyle = obj.color || layer.color;
+        ctx.fillText(obj.text, tp.x + 5, tp.y - 5);
+      }
+      break;
+    }
+    case 'hatch': {
+      if (!obj.bounds) break;
+      const p = s({ x: obj.bounds.x, y: obj.bounds.y });
+      const pw = obj.bounds.w * zoom, ph = obj.bounds.h * zoom;
+      ctx.save();
+      ctx.beginPath(); ctx.rect(p.x, p.y, pw, ph); ctx.clip();
+      ctx.strokeStyle = obj.color || layer.color;
+      ctx.lineWidth = 0.5;
+      const sp = 8;
+      for (let i = -ph; i < pw + ph; i += sp) {
+        ctx.beginPath(); ctx.moveTo(p.x + i, p.y); ctx.lineTo(p.x + i + ph, p.y + ph); ctx.stroke();
+      }
+      ctx.restore();
+      ctx.strokeRect(p.x, p.y, pw, ph);
+      break;
+    }
+    case 'sketch': {
+      if (!obj.points || obj.points.length < 2) break;
+      ctx.beginPath();
+      const p0 = s(obj.points[0]); ctx.moveTo(p0.x, p0.y);
+      for (const pt of obj.points) { const pp = s(pt); ctx.lineTo(pp.x, pp.y); }
+      ctx.stroke();
+      break;
+    }
+    case 'dim_dist': {
+      drawDimension(obj);
+      break;
+    }
+  }
+
+  // Selection handles
+  if (selected) {
+    ctx.shadowBlur = 0;
+    const bounds = getObjectBounds(obj);
+    if (bounds) {
+      const p = s({ x: bounds.x, y: bounds.y });
+      const pw = bounds.w * zoom, ph = bounds.h * zoom;
+      ctx.strokeStyle = '#4fc3f7'; ctx.lineWidth = 1; ctx.setLineDash([3, 2]);
+      ctx.strokeRect(p.x - 2, p.y - 2, pw + 4, ph + 4);
+      ctx.setLineDash([]);
+      const handles = [
+        { x: p.x - 2, y: p.y - 2 }, { x: p.x + pw / 2 + 2, y: p.y - 2 }, { x: p.x + pw + 4, y: p.y - 2 },
+        { x: p.x + pw + 4, y: p.y + ph / 2 + 2 }, { x: p.x + pw + 4, y: p.y + ph + 4 },
+        { x: p.x + pw / 2 + 2, y: p.y + ph + 4 }, { x: p.x - 2, y: p.y + ph + 4 },
+        { x: p.x - 2, y: p.y + ph / 2 + 2 }
+      ];
+      ctx.fillStyle = '#4fc3f7';
+      for (const h of handles) {
+        ctx.fillRect(h.x - 3, h.y - 3, 6, 6);
+      }
+    }
+  }
+  ctx.restore();
+}
+
+function drawDimension(obj) {
+  if (!obj.p1 || !obj.p2) return;
+  const p1 = worldToScreen(obj.p1.x, obj.p1.y);
+  const p2 = worldToScreen(obj.p2.x, obj.p2.y);
+  const offset = 20;
+  const dist = Math.hypot(obj.p2.x - obj.p1.x, obj.p2.y - obj.p1.y);
+  ctx.save();
+  ctx.strokeStyle = '#fdd663'; ctx.lineWidth = 1; ctx.setLineDash([]);
+  // Extension lines
+  const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+  const perp = angle + Math.PI / 2;
+  const dx = Math.cos(perp) * offset, dy = Math.sin(perp) * offset;
+  ctx.beginPath();
+  ctx.moveTo(p1.x, p1.y); ctx.lineTo(p1.x + dx, p1.y + dy);
+  ctx.moveTo(p2.x, p2.y); ctx.lineTo(p2.x + dx, p2.y + dy);
+  // Dimension line
+  ctx.moveTo(p1.x + dx, p1.y + dy); ctx.lineTo(p2.x + dx, p2.y + dy);
+  ctx.stroke();
+  // Text
+  ctx.fillStyle = '#fdd663';
+  ctx.font = `${11 * zoom}px JetBrains Mono`;
+  const mx = (p1.x + p2.x) / 2 + dx, my = (p1.y + p2.y) / 2 + dy;
+  ctx.save();
+  ctx.translate(mx, my);
+  ctx.rotate(angle);
+  ctx.fillText(`${dist.toFixed(2)} ${currentUnits}`, 0, -4);
+  ctx.restore();
+  ctx.restore();
+}
+
+function drawSnapIndicator(pos) {
+  const sp = worldToScreen(pos.x, pos.y);
+  ctx.save();
+  ctx.strokeStyle = '#fdd663'; ctx.lineWidth = 1; ctx.setLineDash([]);
+  const sz = 8;
+  if (snapType === 'endpoint') {
+    ctx.strokeRect(sp.x - sz / 2, sp.y - sz / 2, sz, sz);
+  } else if (snapType === 'midpoint') {
+    ctx.beginPath(); ctx.moveTo(sp.x - sz / 2, sp.y + sz / 2); ctx.lineTo(sp.x, sp.y - sz / 2); ctx.lineTo(sp.x + sz / 2, sp.y + sz / 2); ctx.closePath(); ctx.stroke();
+  } else if (snapType === 'center') {
+    ctx.beginPath(); ctx.arc(sp.x, sp.y, sz / 2, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(sp.x, sp.y, 1.5, 0, Math.PI * 2); ctx.fillStyle = '#fdd663'; ctx.fill();
+  } else if (snapType === 'grid') {
+    ctx.beginPath(); ctx.arc(sp.x, sp.y, 3, 0, Math.PI * 2); ctx.fillStyle = 'rgba(253,214,99,0.4)'; ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawToolPreview() {
+  if (!toolState.active) return;
+  ctx.save();
+  ctx.strokeStyle = currentColor; ctx.lineWidth = currentLineWidth; ctx.setLineDash(currentLineDash);
+  ctx.globalAlpha = 0.7;
+
+  const sp = snapPos;
+
+  switch (currentTool) {
+    case 'line':
+      if (toolState.firstPoint) {
+        const p1 = worldToScreen(toolState.firstPoint.x, toolState.firstPoint.y);
+        const p2 = worldToScreen(sp.x, sp.y);
+        ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+        const d = Math.hypot(sp.x - toolState.firstPoint.x, sp.y - toolState.firstPoint.y);
+        showMeasDisplay(`${d.toFixed(3)} ${currentUnits}`);
+      }
+      break;
+    case 'polyline':
+      if (toolState.points && toolState.points.length > 0) {
+        ctx.beginPath();
+        const pp = worldToScreen(toolState.points[0].x, toolState.points[0].y);
+        ctx.moveTo(pp.x, pp.y);
+        for (const pt of toolState.points) { const p = worldToScreen(pt.x, pt.y); ctx.lineTo(p.x, p.y); }
+        const pc = worldToScreen(sp.x, sp.y); ctx.lineTo(pc.x, pc.y);
+        ctx.stroke();
+      }
+      break;
+    case 'rect':
+      if (toolState.firstPoint) {
+        const p1 = worldToScreen(toolState.firstPoint.x, toolState.firstPoint.y);
+        const p2 = worldToScreen(sp.x, sp.y);
+        ctx.strokeRect(p1.x, p1.y, p2.x - p1.x, p2.y - p1.y);
+        const w = Math.abs(sp.x - toolState.firstPoint.x).toFixed(2);
+        const h = Math.abs(sp.y - toolState.firstPoint.y).toFixed(2);
+        showMeasDisplay(`${w} × ${h} ${currentUnits}`);
+      }
+      break;
+    case 'circle':
+      if (toolState.firstPoint) {
+        const c = worldToScreen(toolState.firstPoint.x, toolState.firstPoint.y);
+        const r = Math.hypot(sp.x - toolState.firstPoint.x, sp.y - toolState.firstPoint.y);
+        ctx.beginPath(); ctx.arc(c.x, c.y, r * zoom, 0, Math.PI * 2); ctx.stroke();
+        showMeasDisplay(`r = ${r.toFixed(3)} ${currentUnits}`);
+      }
+      break;
+    case 'arc':
+      if (toolState.center && toolState.startPt) {
+        const c = worldToScreen(toolState.center.x, toolState.center.y);
+        const r = Math.hypot(toolState.startPt.x - toolState.center.x, toolState.startPt.y - toolState.center.y);
+        const startA = Math.atan2(toolState.startPt.y - toolState.center.y, toolState.startPt.x - toolState.center.x);
+        const endA = Math.atan2(sp.y - toolState.center.y, sp.x - toolState.center.x);
+        ctx.beginPath(); ctx.arc(c.x, c.y, r * zoom, startA, endA); ctx.stroke();
+      } else if (toolState.center) {
+        const c = worldToScreen(toolState.center.x, toolState.center.y);
+        const r = Math.hypot(sp.x - toolState.center.x, sp.y - toolState.center.y);
+        ctx.beginPath(); ctx.arc(c.x, c.y, 3, 0, Math.PI * 2); ctx.strokeStyle = '#fdd663'; ctx.stroke();
+        ctx.beginPath(); ctx.arc(c.x, c.y, r * zoom, 0, Math.PI * 2);
+        ctx.setLineDash([4, 3]); ctx.stroke();
+      }
+      break;
+    case 'measure_dist':
+      if (toolState.p1) {
+        const p1 = worldToScreen(toolState.p1.x, toolState.p1.y);
+        const p2 = worldToScreen(sp.x, sp.y);
+        ctx.strokeStyle = '#fdd663'; ctx.setLineDash([4, 3]);
+        ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+        const d = Math.hypot(sp.x - toolState.p1.x, sp.y - toolState.p1.y);
+        showMeasDisplay(`Distance: ${d.toFixed(4)} ${currentUnits}`);
+      }
+      break;
+    case 'measure_area':
+      if (toolState.points && toolState.points.length > 0) {
+        ctx.strokeStyle = '#fdd663'; ctx.setLineDash([4, 3]);
+        ctx.fillStyle = 'rgba(253,214,99,0.1)';
+        ctx.beginPath();
+        const p0 = worldToScreen(toolState.points[0].x, toolState.points[0].y);
+        ctx.moveTo(p0.x, p0.y);
+        for (const pt of toolState.points) { const p = worldToScreen(pt.x, pt.y); ctx.lineTo(p.x, p.y); }
+        const pc = worldToScreen(sp.x, sp.y); ctx.lineTo(pc.x, pc.y);
+        ctx.closePath(); ctx.stroke(); ctx.fill();
+        if (toolState.points.length >= 2) {
+          const area = computePolygonArea([...toolState.points, sp]);
+          showMeasDisplay(`Area: ${area.toFixed(4)} ${currentUnits}²`);
+        }
+      }
+      break;
+    case 'measure_angle':
+      if (toolState.vertex && toolState.p1) {
+        const v = worldToScreen(toolState.vertex.x, toolState.vertex.y);
+        const p1 = worldToScreen(toolState.p1.x, toolState.p1.y);
+        const p2 = worldToScreen(sp.x, sp.y);
+        ctx.strokeStyle = '#c58af9'; ctx.setLineDash([4, 3]);
+        ctx.beginPath(); ctx.moveTo(v.x, v.y); ctx.lineTo(p1.x, p1.y);
+        ctx.moveTo(v.x, v.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+        const a1 = Math.atan2(toolState.p1.y - toolState.vertex.y, toolState.p1.x - toolState.vertex.x);
+        const a2 = Math.atan2(sp.y - toolState.vertex.y, sp.x - toolState.vertex.x);
+        let angle = Math.abs(a1 - a2) * 180 / Math.PI;
+        if (angle > 180) angle = 360 - angle;
+        showMeasDisplay(`Angle: ${angle.toFixed(2)}°`);
+      }
+      break;
+    case 'hatch':
+      if (toolState.firstPoint) {
+        const p1 = worldToScreen(toolState.firstPoint.x, toolState.firstPoint.y);
+        const p2 = worldToScreen(sp.x, sp.y);
+        ctx.strokeStyle = currentColor; ctx.setLineDash([]);
+        ctx.strokeRect(p1.x, p1.y, p2.x - p1.x, p2.y - p1.y);
+      }
+      break;
+    case 'move':
+      if (toolState.dragging && selectedObjs.length > 0) {
+        const dx = sp.x - toolState.startPos.x;
+        const dy = sp.y - toolState.startPos.y;
+        for (const obj of selectedObjs) {
+          const ghost = JSON.parse(JSON.stringify(obj));
+          translateObject(ghost, dx, dy);
+          ctx.globalAlpha = 0.4;
+          drawObject(ghost, false);
+        }
+      }
+      break;
+    case 'leader':
+      if (toolState.points && toolState.points.length > 0) {
+        ctx.beginPath();
+        const lp0 = worldToScreen(toolState.points[0].x, toolState.points[0].y);
+        ctx.moveTo(lp0.x, lp0.y);
+        for (const pt of toolState.points) { const p = worldToScreen(pt.x, pt.y); ctx.lineTo(p.x, p.y); }
+        const lc = worldToScreen(sp.x, sp.y); ctx.lineTo(lc.x, lc.y);
+        ctx.stroke();
+      }
+      break;
+  }
+  ctx.restore();
+}
+
+// ══════════════════════════════════════════════════════════
+//  CANVAS EVENTS
+// ══════════════════════════════════════════════════════════
+function setupCanvasEvents() {
+  canvas.addEventListener('mousemove', onMouseMove);
+  canvas.addEventListener('mousedown', onMouseDown);
+  canvas.addEventListener('mouseup', onMouseUp);
+  canvas.addEventListener('wheel', onWheel, { passive: false });
+  canvas.addEventListener('contextmenu', onContextMenu);
+  canvas.addEventListener('dblclick', onDblClick);
+}
+
+function getCanvasPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+}
+
+function onMouseMove(e) {
+  const { x: sx, y: sy } = getCanvasPos(e);
+  const { pos, type } = computeSnap(sx, sy);
+  snapPos = pos; snapType = type;
+  mousePos = { x: sx, y: sy };
+  updateCoordDisplay(pos);
+
+  if (e.buttons === 2 && isPanning) {
+    panX += sx - panStart.x; panY += sy - panStart.y;
+    panStart = { x: sx, y: sy };
+    render(); return;
+  }
+  if (e.buttons === 4) { // middle mouse
+    panX += sx - panStart.x; panY += sy - panStart.y;
+    panStart = { x: sx, y: sy };
+    render(); return;
+  }
+
+  if (currentTool === 'select' && toolState.selecting && e.buttons === 1) {
+    const s = toolState.selBox;
+    s.w = sx - s.startX; s.h = sy - s.startY;
+    s.x = Math.min(sx, s.startX); s.y = Math.min(sy, s.startY);
+    s.w = Math.abs(s.w); s.h = Math.abs(s.h);
+    render(); return;
+  }
+
+  if (currentTool === 'move' && toolState.dragging && e.buttons === 1) {
+    render(); return;
+  }
+
+  if (currentTool === 'sketch' && toolState.drawing && e.buttons === 1) {
+    toolState.points.push({ x: pos.x, y: pos.y });
+    render(); return;
+  }
+
+  if (toolState.active || currentTool !== 'select') render();
+}
+
+function onMouseDown(e) {
+  const { x: sx, y: sy } = getCanvasPos(e);
+  panStart = { x: sx, y: sy };
+
+  if (e.button === 1 || e.button === 2) { isPanning = true; return; }
+  if (e.button !== 0) return;
+
+  const pos = snapPos;
+
+  switch (currentTool) {
+    case 'select':
+      handleSelectDown(sx, sy);
+      break;
+    case 'line':
+      if (!toolState.firstPoint) {
+        toolState.firstPoint = { ...pos }; toolState.active = true;
+      } else {
+        commitLine(toolState.firstPoint, pos);
+        toolState.firstPoint = { ...pos }; // chain
+      }
+      break;
+    case 'polyline':
+      if (!toolState.points) { toolState.points = []; toolState.active = true; }
+      toolState.points.push({ ...pos });
+      break;
+    case 'rect':
+      if (!toolState.firstPoint) { toolState.firstPoint = { ...pos }; toolState.active = true; }
+      else { commitRect(toolState.firstPoint, pos); resetTool(); }
+      break;
+    case 'circle':
+      if (!toolState.firstPoint) { toolState.firstPoint = { ...pos }; toolState.active = true; }
+      else { commitCircle(toolState.firstPoint, pos); resetTool(); }
+      break;
+    case 'arc':
+      if (!toolState.center) { toolState.center = { ...pos }; toolState.active = true; }
+      else if (!toolState.startPt) { toolState.startPt = { ...pos }; }
+      else { commitArc(toolState.center, toolState.startPt, pos); resetTool(); }
+      break;
+    case 'text':
+      promptText(pos);
+      break;
+    case 'leader':
+      if (!toolState.points) { toolState.points = []; toolState.active = true; }
+      toolState.points.push({ ...pos });
+      break;
+    case 'hatch':
+      if (!toolState.firstPoint) { toolState.firstPoint = { ...pos }; toolState.active = true; }
+      else { commitHatch(toolState.firstPoint, pos); resetTool(); }
+      break;
+    case 'sketch':
+      toolState.points = [{ ...pos }]; toolState.drawing = true; toolState.active = true;
+      break;
+    case 'measure_dist':
+      if (!toolState.p1) { toolState.p1 = { ...pos }; toolState.active = true; }
+      else {
+        const d = Math.hypot(pos.x - toolState.p1.x, pos.y - toolState.p1.y);
+        cmdLog(`Distance: ${d.toFixed(4)} ${currentUnits}`, 'success');
+        showMeasDisplay(`Distance: ${d.toFixed(4)} ${currentUnits}`);
+        addObject({ type: 'dim_dist', p1: { ...toolState.p1 }, p2: { ...pos }, layer: currentLayer, color: '#fdd663' });
+        resetTool();
+      }
+      break;
+    case 'measure_area':
+      if (!toolState.points) { toolState.points = [{ ...pos }]; toolState.active = true; }
+      else toolState.points.push({ ...pos });
+      break;
+    case 'measure_angle':
+      if (!toolState.vertex) { toolState.vertex = { ...pos }; toolState.active = true; }
+      else if (!toolState.p1) { toolState.p1 = { ...pos }; }
+      else {
+        const a1 = Math.atan2(toolState.p1.y - toolState.vertex.y, toolState.p1.x - toolState.vertex.x);
+        const a2 = Math.atan2(pos.y - toolState.vertex.y, pos.x - toolState.vertex.x);
+        let angle = Math.abs(a1 - a2) * 180 / Math.PI;
+        if (angle > 180) angle = 360 - angle;
+        cmdLog(`Angle: ${angle.toFixed(4)}°`, 'success');
+        showMeasDisplay(`Angle: ${angle.toFixed(2)}°`);
+        resetTool();
+      }
+      break;
+    case 'measure_radius':
+      const hitObj = hitTest(sx, sy);
+      if (hitObj && (hitObj.type === 'circle' || hitObj.type === 'arc')) {
+        const r = hitObj.r;
+        const circ = 2 * Math.PI * r;
+        cmdLog(`Radius: ${r.toFixed(4)} ${currentUnits} | Diameter: ${(r*2).toFixed(4)} | Circumference: ${circ.toFixed(4)}`, 'success');
+        showMeasDisplay(`r = ${r.toFixed(4)} ${currentUnits}`);
+      } else cmdLog('Click on a circle or arc to measure radius.', 'warn');
+      break;
+    case 'move':
+      if (!toolState.dragging && selectedObjs.length > 0) {
+        toolState.dragging = true; toolState.startPos = { ...pos }; toolState.active = true;
+      } else if (toolState.dragging) {
+        const dx = pos.x - toolState.startPos.x;
+        const dy = pos.y - toolState.startPos.y;
+        saveUndo();
+        for (const obj of selectedObjs) translateObject(obj, dx, dy);
+        resetTool();
+      }
+      break;
+    case 'rotate':
+      if (!toolState.center) { toolState.center = { ...pos }; toolState.active = true; }
+      else {
+        const angle = Math.atan2(pos.y - toolState.center.y, pos.x - toolState.center.x);
+        saveUndo();
+        for (const obj of selectedObjs) rotateObject(obj, toolState.center, angle);
+        resetTool();
+      }
+      break;
+    case 'scale_tool':
+      if (!toolState.base) { toolState.base = { ...pos }; toolState.active = true; }
+      else {
+        const d0 = Math.hypot(toolState.base.x, toolState.base.y) || 1;
+        const d1 = Math.hypot(pos.x - toolState.base.x, pos.y - toolState.base.y);
+        const sc = d1 / (gridSpacing * 2) + 0.5;
+        saveUndo();
+        for (const obj of selectedObjs) scaleObject(obj, toolState.base, sc);
+        resetTool();
+      }
+      break;
+    case 'offset':
+      handleOffset(pos);
+      break;
+  }
+  render();
+}
+
+function onMouseUp(e) {
+  if (e.button === 1 || e.button === 2) { isPanning = false; return; }
+  if (currentTool === 'select' && toolState.selecting) {
+    finishSelectionBox();
+  }
+  if (currentTool === 'sketch' && toolState.drawing) {
+    if (toolState.points && toolState.points.length > 1) {
+      addObject({ type: 'sketch', points: [...toolState.points], color: currentColor, lineWidth: currentLineWidth, lineDash: [...currentLineDash], layer: currentLayer });
+    }
+    toolState.drawing = false; toolState.active = false; toolState.points = [];
+  }
+  render();
+}
+
+function onWheel(e) {
+  e.preventDefault();
+  const { x: sx, y: sy } = getCanvasPos(e);
+  const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;
+  const wx = (sx - panX) / zoom, wy = (sy - panY) / zoom;
+  zoom *= factor;
+  zoom = Math.max(0.01, Math.min(zoom, 200));
+  panX = sx - wx * zoom; panY = sy - wy * zoom;
+  render();
+}
+
+function onContextMenu(e) {
+  e.preventDefault();
+  const { x: sx, y: sy } = getCanvasPos(e);
+  // Right-click = pan start handled in mousemove; also show context menu
+  showCtx(e.clientX, e.clientY);
+}
+
+function onDblClick(e) {
+  if (currentTool === 'polyline' && toolState.points && toolState.points.length >= 2) {
+    commitPolyline(toolState.points); resetTool();
+  }
+  if (currentTool === 'measure_area' && toolState.points && toolState.points.length >= 3) {
+    const area = computePolygonArea(toolState.points);
+    const perim = computePolygonPerim(toolState.points);
+    cmdLog(`Area: ${area.toFixed(4)} ${currentUnits}² | Perimeter: ${perim.toFixed(4)} ${currentUnits}`, 'success');
+    showMeasDisplay(`Area: ${area.toFixed(4)} ${currentUnits}²`);
+    resetTool();
+  }
+  if (currentTool === 'leader' && toolState.points && toolState.points.length >= 2) {
+    promptLeaderText(toolState.points);
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+//  SELECTION
+// ══════════════════════════════════════════════════════════
+function handleSelectDown(sx, sy) {
+  const hit = hitTest(sx, sy);
+  if (hit) {
+    if (!selectedObjs.includes(hit)) {
+      selectedObjs = [hit];
+    }
+    // Start drag for move via move tool? No — just select here
+    toolState.selecting = false;
+  } else {
+    selectedObjs = [];
+    toolState.selecting = true;
+    toolState.selBox = { startX: sx, startY: sy, x: sx, y: sy, w: 0, h: 0 };
+  }
+}
+
+function finishSelectionBox() {
+  const s = toolState.selBox;
+  if (!s) return;
+  const x1w = (s.x - panX) / zoom, y1w = (s.y - panY) / zoom;
+  const x2w = (s.x + s.w - panX) / zoom, y2w = (s.y + s.h - panY) / zoom;
+  selectedObjs = objects.filter(obj => {
+    const b = getObjectBounds(obj);
+    if (!b) return false;
+    return b.x >= Math.min(x1w, x2w) && b.x + b.w <= Math.max(x1w, x2w) &&
+           b.y >= Math.min(y1w, y2w) && b.y + b.h <= Math.max(y1w, y2w);
+  });
+  toolState.selecting = false;
+  toolState.selBox = null;
+}
+
+function hitTest(sx, sy) {
+  const wx = (sx - panX) / zoom, wy = (sy - panY) / zoom;
+  const tol = 6 / zoom;
+  for (let i = objects.length - 1; i >= 0; i--) {
+    const obj = objects[i];
+    if (!isLayerVisible(obj.layer)) continue;
+    if (hitTestObject(obj, wx, wy, tol)) return obj;
+  }
+  return null;
+}
+
+function hitTestObject(obj, wx, wy, tol) {
+  switch (obj.type) {
+    case 'line': return distToSegment(wx, wy, obj.x1, obj.y1, obj.x2, obj.y2) < tol;
+    case 'circle': return Math.abs(Math.hypot(wx - obj.cx, wy - obj.cy) - obj.r) < tol;
+    case 'rect': {
+      const inside = wx >= obj.x - tol && wx <= obj.x + obj.w + tol && wy >= obj.y - tol && wy <= obj.y + obj.h + tol;
+      const onEdge = Math.min(Math.abs(wx - obj.x), Math.abs(wx - obj.x - obj.w)) < tol ||
+                     Math.min(Math.abs(wy - obj.y), Math.abs(wy - obj.y - obj.h)) < tol;
+      return inside && onEdge;
+    }
+    case 'text': return wx >= obj.x && wx <= obj.x + 100 && wy >= obj.y - 16 && wy <= obj.y + 4;
+    case 'polyline': case 'sketch':
+      if (!obj.points) return false;
+      for (let i = 0; i < obj.points.length - 1; i++) {
+        if (distToSegment(wx, wy, obj.points[i].x, obj.points[i].y, obj.points[i+1].x, obj.points[i+1].y) < tol) return true;
+      }
+      return false;
+    default: {
+      const b = getObjectBounds(obj);
+      if (!b) return false;
+      return wx >= b.x - tol && wx <= b.x + b.w + tol && wy >= b.y - tol && wy <= b.y + b.h + tol;
+    }
+  }
+}
+
+function distToSegment(px, py, ax, ay, bx, by) {
+  const dx = bx - ax, dy = by - ay;
+  const len2 = dx * dx + dy * dy;
+  if (len2 === 0) return Math.hypot(px - ax, py - ay);
+  let t = ((px - ax) * dx + (py - ay) * dy) / len2;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - ax - t * dx, py - ay - t * dy);
+}
+
+function getObjectBounds(obj) {
+  switch (obj.type) {
+    case 'line': return { x: Math.min(obj.x1, obj.x2), y: Math.min(obj.y1, obj.y2), w: Math.abs(obj.x2 - obj.x1), h: Math.abs(obj.y2 - obj.y1) };
+    case 'circle': return { x: obj.cx - obj.r, y: obj.cy - obj.r, w: obj.r * 2, h: obj.r * 2 };
+    case 'rect': return { x: obj.x, y: obj.y, w: obj.w, h: obj.h };
+    case 'arc': return { x: obj.cx - obj.r, y: obj.cy - obj.r, w: obj.r * 2, h: obj.r * 2 };
+    case 'text': return { x: obj.x, y: obj.y - 16, w: 120, h: 20 };
+    case 'dim_dist':
+      if (!obj.p1 || !obj.p2) return null;
+      return { x: Math.min(obj.p1.x, obj.p2.x), y: Math.min(obj.p1.y, obj.p2.y), w: Math.abs(obj.p2.x - obj.p1.x) + 20, h: Math.abs(obj.p2.y - obj.p1.y) + 40 };
+    case 'polyline': case 'sketch':
+      if (!obj.points || !obj.points.length) return null;
+      const xs = obj.points.map(p => p.x), ys = obj.points.map(p => p.y);
+      const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+      return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+    case 'hatch':
+      if (!obj.bounds) return null;
+      return { ...obj.bounds };
+    default: return null;
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+//  OBJECT CREATION
+// ══════════════════════════════════════════════════════════
+function addObject(obj) {
+  saveUndo();
+  objects.push(obj);
+  render();
+  updateObjectList();
+}
+
+function commitLine(p1, p2) {
+  addObject({ type: 'line', x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, color: currentColor, lineWidth: currentLineWidth, lineDash: [...currentLineDash], layer: currentLayer });
+  const d = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+  cmdLog(`Line: length = ${d.toFixed(3)} ${currentUnits}`, 'success');
+}
+function commitPolyline(pts) {
+  addObject({ type: 'polyline', points: pts.map(p => ({ ...p })), color: currentColor, lineWidth: currentLineWidth, lineDash: [...currentLineDash], layer: currentLayer });
+  cmdLog(`Polyline: ${pts.length} vertices`, 'success');
+}
+function commitRect(p1, p2) {
+  const x = Math.min(p1.x, p2.x), y = Math.min(p1.y, p2.y);
+  const w = Math.abs(p2.x - p1.x), h = Math.abs(p2.y - p1.y);
+  addObject({ type: 'rect', x, y, w, h, color: currentColor, lineWidth: currentLineWidth, lineDash: [...currentLineDash], layer: currentLayer });
+  cmdLog(`Rectangle: ${w.toFixed(2)} × ${h.toFixed(2)} ${currentUnits}`, 'success');
+}
+function commitCircle(center, edge) {
+  const r = Math.hypot(edge.x - center.x, edge.y - center.y);
+  addObject({ type: 'circle', cx: center.x, cy: center.y, r, color: currentColor, lineWidth: currentLineWidth, lineDash: [...currentLineDash], layer: currentLayer });
+  cmdLog(`Circle: radius = ${r.toFixed(3)} ${currentUnits}`, 'success');
+}
+function commitArc(center, startPt, endPt) {
+  const r = Math.hypot(startPt.x - center.x, startPt.y - center.y);
+  const startAngle = Math.atan2(startPt.y - center.y, startPt.x - center.x);
+  const endAngle = Math.atan2(endPt.y - center.y, endPt.x - center.x);
+  addObject({ type: 'arc', cx: center.x, cy: center.y, r, startAngle, endAngle, color: currentColor, lineWidth: currentLineWidth, lineDash: [...currentLineDash], layer: currentLayer });
+  cmdLog(`Arc: r = ${r.toFixed(3)} ${currentUnits}`, 'success');
+}
+function commitHatch(p1, p2) {
+  const bounds = { x: Math.min(p1.x, p2.x), y: Math.min(p1.y, p2.y), w: Math.abs(p2.x - p1.x), h: Math.abs(p2.y - p1.y) };
+  addObject({ type: 'hatch', bounds, color: currentColor, lineWidth: currentLineWidth, layer: currentLayer });
+  cmdLog('Hatch created', 'success');
+}
+
+function promptText(pos) {
+  showModal('Add Text', `
+    <div class="modal-row"><span class="modal-label">Text</span><input class="modal-input" id="mi-text" value="Text" autofocus></div>
+    <div class="modal-row"><span class="modal-label">Font size</span><input class="modal-input" id="mi-size" type="number" value="14"></div>
+    <div class="modal-row"><span class="modal-label">Multiline</span><textarea class="modal-input" id="mi-ml" rows="3" placeholder="Optional multiline text..." style="resize:vertical"></textarea></div>
+  `, [
+    { label: 'Cancel', fn: closeModal },
+    { label: 'Place', primary: true, fn: () => {
+      const text = document.getElementById('mi-text').value;
+      const size = +document.getElementById('mi-size').value || 14;
+      const ml = document.getElementById('mi-ml').value;
+      closeModal();
+      addObject({ type: 'text', x: pos.x, y: pos.y, text: ml || text, fontSize: size, color: currentColor, layer: currentLayer });
+      cmdLog(`Text placed at (${pos.x.toFixed(1)}, ${pos.y.toFixed(1)})`, 'success');
+    }}
+  ]);
+}
+
+function promptLeaderText(pts) {
+  showModal('Leader Text', `
+    <div class="modal-row"><span class="modal-label">Label</span><input class="modal-input" id="mi-ltext" value="" autofocus placeholder="Enter annotation..."></div>
+  `, [
+    { label: 'Cancel', fn: closeModal },
+    { label: 'Place', primary: true, fn: () => {
+      const text = document.getElementById('mi-ltext').value;
+      closeModal();
+      addObject({ type: 'leader', points: pts.map(p => ({ ...p })), text, color: currentColor, lineWidth: currentLineWidth, layer: currentLayer });
+      resetTool();
+    }}
+  ]);
+}
+
+// ══════════════════════════════════════════════════════════
+//  MODIFY TOOLS
+// ══════════════════════════════════════════════════════════
+function translateObject(obj, dx, dy) {
+  switch (obj.type) {
+    case 'line': obj.x1 += dx; obj.y1 += dy; obj.x2 += dx; obj.y2 += dy; break;
+    case 'circle': case 'arc': obj.cx += dx; obj.cy += dy; break;
+    case 'rect': obj.x += dx; obj.y += dy; break;
+    case 'text': obj.x += dx; obj.y += dy; break;
+    case 'hatch': if (obj.bounds) { obj.bounds.x += dx; obj.bounds.y += dy; } break;
+    case 'polyline': case 'sketch': case 'leader':
+      if (obj.points) obj.points = obj.points.map(p => ({ x: p.x + dx, y: p.y + dy })); break;
+    case 'dim_dist': if (obj.p1) { obj.p1.x += dx; obj.p1.y += dy; obj.p2.x += dx; obj.p2.y += dy; } break;
+  }
+}
+
+function rotateObject(obj, center, angle) {
+  const rot = (p) => {
+    const cos = Math.cos(angle), sin = Math.sin(angle);
+    const dx = p.x - center.x, dy = p.y - center.y;
+    return { x: center.x + dx * cos - dy * sin, y: center.y + dx * sin + dy * cos };
+  };
+  switch (obj.type) {
+    case 'line': { const p1 = rot({ x: obj.x1, y: obj.y1 }), p2 = rot({ x: obj.x2, y: obj.y2 }); obj.x1 = p1.x; obj.y1 = p1.y; obj.x2 = p2.x; obj.y2 = p2.y; break; }
+    case 'circle': case 'arc': { const c = rot({ x: obj.cx, y: obj.cy }); obj.cx = c.x; obj.cy = c.y; break; }
+    case 'rect': { const p = rot({ x: obj.x + obj.w / 2, y: obj.y + obj.h / 2 }); obj.x = p.x - obj.w / 2; obj.y = p.y - obj.h / 2; break; }
+    case 'polyline': case 'sketch': case 'leader': if (obj.points) obj.points = obj.points.map(rot); break;
+  }
+}
+
+function scaleObject(obj, base, sc) {
+  const scl = (p) => ({ x: base.x + (p.x - base.x) * sc, y: base.y + (p.y - base.y) * sc });
+  switch (obj.type) {
+    case 'line': { const p1 = scl({ x: obj.x1, y: obj.y1 }), p2 = scl({ x: obj.x2, y: obj.y2 }); obj.x1 = p1.x; obj.y1 = p1.y; obj.x2 = p2.x; obj.y2 = p2.y; break; }
+    case 'circle': case 'arc': { const c = scl({ x: obj.cx, y: obj.cy }); obj.cx = c.x; obj.cy = c.y; obj.r *= sc; break; }
+    case 'rect': { const p = scl({ x: obj.x, y: obj.y }); obj.x = p.x; obj.y = p.y; obj.w *= sc; obj.h *= sc; break; }
+    case 'polyline': case 'sketch': if (obj.points) obj.points = obj.points.map(scl); break;
+  }
+}
+
+function handleOffset(pos) {
+  if (selectedObjs.length === 0) { cmdLog('Select an object first, then use Offset.', 'warn'); return; }
+  const obj = selectedObjs[0];
+  const dist = gridSpacing;
+  saveUndo();
+  const clone = JSON.parse(JSON.stringify(obj));
+  if (clone.type === 'line') {
+    const dx = clone.x2 - clone.x1, dy = clone.y2 - clone.y1;
+    const len = Math.hypot(dx, dy); const nx = -dy / len * dist, ny = dx / len * dist;
+    clone.x1 += nx; clone.y1 += ny; clone.x2 += nx; clone.y2 += ny;
+  } else if (clone.type === 'circle') { clone.r += dist; }
+  else if (clone.type === 'rect') { clone.x -= dist / 2; clone.y -= dist / 2; clone.w += dist; clone.h += dist; }
+  objects.push(clone);
+  cmdLog(`Offset by ${dist} ${currentUnits}`, 'success');
+  render();
+}
+
+function mirrorSelected() {
+  if (!selectedObjs.length) { cmdLog('No objects selected.', 'warn'); return; }
+  saveUndo();
+  for (const obj of selectedObjs) {
+    const clone = JSON.parse(JSON.stringify(obj));
+    mirrorObjectH(clone);
+    objects.push(clone);
+  }
+  render();
+  cmdLog('Mirrored (horizontal)', 'success');
+}
+
+function mirrorObjectH(obj) {
+  const b = getObjectBounds(obj);
+  if (!b) return;
+  const cx = b.x + b.w / 2;
+  const mirX = (x) => 2 * cx - x;
+  switch (obj.type) {
+    case 'line': obj.x1 = mirX(obj.x1); obj.x2 = mirX(obj.x2); break;
+    case 'circle': case 'arc': obj.cx = mirX(obj.cx); break;
+    case 'rect': obj.x = mirX(obj.x + obj.w); break;
+    case 'polyline': case 'sketch': if (obj.points) obj.points = obj.points.map(p => ({ x: mirX(p.x), y: p.y })); break;
+  }
+}
+
+function copySelected() {
+  if (!selectedObjs.length) return;
+  clipboard = selectedObjs.map(o => JSON.parse(JSON.stringify(o)));
+  cmdLog(`Copied ${clipboard.length} object(s)`, 'info');
+}
+
+function pasteObjects() {
+  if (!clipboard.length) return;
+  saveUndo();
+  const pasted = clipboard.map(o => {
+    const clone = JSON.parse(JSON.stringify(o));
+    translateObject(clone, gridSpacing, gridSpacing);
+    return clone;
+  });
+  objects.push(...pasted);
+  selectedObjs = pasted;
+  render();
+  cmdLog(`Pasted ${pasted.length} object(s)`, 'success');
+}
+
+function deleteSelected() {
+  if (!selectedObjs.length) return;
+  saveUndo();
+  objects = objects.filter(o => !selectedObjs.includes(o));
+  selectedObjs = [];
+  render();
+  cmdLog(`Deleted ${selectedObjs.length || 1} object(s)`, 'warn');
+}
+
+function selectAll() {
+  selectedObjs = [...objects];
+  render();
+}
+
+function groupSelected() {
+  cmdLog('Group: visual grouping noted (full group support in pro version)', 'info');
+}
+
+function bringToFront() {
+  if (!selectedObjs.length) return;
+  saveUndo();
+  objects = objects.filter(o => !selectedObjs.includes(o));
+  objects.push(...selectedObjs);
+  render();
+}
+
+function sendToBack() {
+  if (!selectedObjs.length) return;
+  saveUndo();
+  const rest = objects.filter(o => !selectedObjs.includes(o));
+  objects = [...selectedObjs, ...rest];
+  render();
+}
+
+// ══════════════════════════════════════════════════════════
+//  UNDO/REDO
+// ══════════════════════════════════════════════════════════
+function saveUndo() {
+  undoStack.push(JSON.stringify(objects));
+  if (undoStack.length > 50) undoStack.shift();
+  redoStack = [];
+}
+function undo() {
+  if (!undoStack.length) { cmdLog('Nothing to undo', 'warn'); return; }
+  redoStack.push(JSON.stringify(objects));
+  objects = JSON.parse(undoStack.pop());
+  selectedObjs = [];
+  render();
+  cmdLog('Undo', 'info');
+}
+function redo() {
+  if (!redoStack.length) { cmdLog('Nothing to redo', 'warn'); return; }
+  undoStack.push(JSON.stringify(objects));
+  objects = JSON.parse(redoStack.pop());
+  selectedObjs = [];
+  render();
+  cmdLog('Redo', 'info');
+}
+
+// ══════════════════════════════════════════════════════════
+//  LAYERS
+// ══════════════════════════════════════════════════════════
+function renderLayers() {
+  const list = document.getElementById('layer-list');
+  list.innerHTML = '';
+  layers.forEach((layer, i) => {
+    const el = document.createElement('div');
+    el.className = 'layer-item' + (i === currentLayer ? ' active' : '');
+    el.innerHTML = `
+      <div class="layer-color" style="background:${layer.color}"></div>
+      <span class="layer-name">${layer.name}</span>
+      <div class="layer-actions">
+        <div class="layer-icon-btn" title="Toggle visibility" onclick="toggleLayerVis(${i},event)">${layer.visible ? '👁' : '·'}</div>
+        <div class="layer-icon-btn" title="Lock" onclick="toggleLayerLock(${i},event)">${layer.locked ? '🔒' : '🔓'}</div>
+      </div>
+    `;
+    el.onclick = () => { currentLayer = i; renderLayers(); };
+    list.appendChild(el);
+  });
+}
+
+function addLayer() {
+  showModal('New Layer', `
+    <div class="modal-row"><span class="modal-label">Name</span><input class="modal-input" id="mi-lname" value="Layer ${layers.length}" autofocus></div>
+    <div class="modal-row"><span class="modal-label">Color</span><input type="color" id="mi-lcolor" value="#4fc3f7" class="modal-input" style="width:60px;height:28px;padding:2px;"></div>
+  `, [
+    { label: 'Cancel', fn: closeModal },
+    { label: 'Add', primary: true, fn: () => {
+      const name = document.getElementById('mi-lname').value;
+      const color = document.getElementById('mi-lcolor').value;
+      layers.push({ name, color, visible: true, locked: false });
+      closeModal(); renderLayers();
+    }}
+  ]);
+}
+
+function toggleLayerVis(i, e) { e.stopPropagation(); layers[i].visible = !layers[i].visible; renderLayers(); render(); }
+function toggleLayerLock(i, e) { e.stopPropagation(); layers[i].locked = !layers[i].locked; renderLayers(); }
+function isLayerVisible(i) { return layers[i] ? layers[i].visible : true; }
+
+// ══════════════════════════════════════════════════════════
+//  TOOL MANAGEMENT
+// ══════════════════════════════════════════════════════════
+function setTool(tool) {
+  resetTool();
+  currentTool = tool;
+  document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('btn-' + tool);
+  if (btn) btn.classList.add('active');
+  hideMeasDisplay();
+  if (tool === 'select') selectedObjs = [];
+  cmdLog(`Tool: ${tool.toUpperCase()}`, 'info');
+  render();
+}
+
+function resetTool() {
+  toolState = {};
+  hideMeasDisplay();
+  render();
+}
+
+// ══════════════════════════════════════════════════════════
+//  ZOOM/PAN
+// ══════════════════════════════════════════════════════════
+function zoomIn() { const cx = canvas.width / 2, cy = canvas.height / 2; const wx = (cx - panX) / zoom, wy = (cy - panY) / zoom; zoom *= 1.25; panX = cx - wx * zoom; panY = cy - wy * zoom; render(); }
+function zoomOut() { const cx = canvas.width / 2, cy = canvas.height / 2; const wx = (cx - panX) / zoom, wy = (cy - panY) / zoom; zoom /= 1.25; panX = cx - wx * zoom; panY = cy - wy * zoom; render(); }
+function fitToWindow() {
+  if (!objects.length) { zoom = 1; panX = canvas.width / 2; panY = canvas.height / 2; render(); return; }
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const obj of objects) {
+    const b = getObjectBounds(obj);
+    if (!b) continue;
+    minX = Math.min(minX, b.x); minY = Math.min(minY, b.y);
+    maxX = Math.max(maxX, b.x + b.w); maxY = Math.max(maxY, b.y + b.h);
+  }
+  const margin = 40;
+  const fw = canvas.width - margin * 2, fh = canvas.height - margin * 2;
+  const dw = maxX - minX || 100, dh = maxY - minY || 100;
+  zoom = Math.min(fw / dw, fh / dh);
+  panX = (canvas.width - (minX + maxX) * zoom) / 2;
+  panY = (canvas.height - (minY + maxY) * zoom) / 2;
+  render();
+  cmdLog('Fit to window', 'info');
+}
+function toggleGrid() { gridVisible = !gridVisible; render(); cmdLog(`Grid: ${gridVisible ? 'ON' : 'OFF'}`, 'info'); }
+function toggleOrtho() { orthoMode = !orthoMode; document.getElementById('ortho-btn').classList.toggle('on', orthoMode); cmdLog(`ORTHO: ${orthoMode ? 'ON' : 'OFF'}`, 'info'); }
+function toggleSnapGrid() { snapSettings.grid = !snapSettings.grid; document.getElementById('snap-grid-btn').classList.toggle('on', snapSettings.grid); }
+function toggleSnapEnd() { snapSettings.endpoint = !snapSettings.endpoint; document.getElementById('snap-end-btn').classList.toggle('on', snapSettings.endpoint); }
+function toggleSnapMid() { snapSettings.midpoint = !snapSettings.midpoint; document.getElementById('snap-mid-btn').classList.toggle('on', snapSettings.midpoint); }
+function toggleSnapCen() { snapSettings.center = !snapSettings.center; document.getElementById('snap-cen-btn').classList.toggle('on', snapSettings.center); }
+function toggleSnapPerp() { snapSettings.perpendicular = !snapSettings.perpendicular; document.getElementById('snap-perp-btn').classList.toggle('on', snapSettings.perpendicular); }
+
+// ══════════════════════════════════════════════════════════
+//  VIEW
+// ══════════════════════════════════════════════════════════
+function setView(view) {
+  currentView = view;
+  document.querySelectorAll('.view-ctrl-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('vcbtn-' + view)?.classList.add('active');
+  if (is3D && camera3d) {
+    switch (view) {
+      case 'top': camera3d.position.set(0, 300, 0); camera3d.lookAt(0, 0, 0); break;
+      case 'front': camera3d.position.set(0, 0, 300); camera3d.lookAt(0, 0, 0); break;
+      case 'side': camera3d.position.set(300, 0, 0); camera3d.lookAt(0, 0, 0); break;
+      case 'iso': camera3d.position.set(200, 200, 200); camera3d.lookAt(0, 0, 0); break;
+    }
+    render();
+  }
+  cmdLog(`View: ${view}`, 'info');
+}
+
+function switchToLayout() {
+  cmdLog('Layout (Paper Space) — set scale and viewports for printing.', 'info');
+}
+
+// ══════════════════════════════════════════════════════════
+//  3D ENGINE
+// ══════════════════════════════════════════════════════════
+let renderer3d = null, scene3d = null, camera3d = null;
+let is3DInit = false;
+let orbit3d = { active: false, startX: 0, startY: 0, startTheta: 0, startPhi: 0, theta: 0.7, phi: 0.5, radius: 300 };
+
+function init3D() {
+  if (is3DInit) return;
+  const c = document.getElementById('canvas3d');
+  renderer3d = new THREE.WebGLRenderer({ canvas: c, antialias: true, alpha: true });
+  renderer3d.setSize(canvas.width, canvas.height);
+  renderer3d.setClearColor(document.body.classList.contains('light') ? 0xf8f9fa : 0x0e0f11);
+  renderer3d.shadowMap.enabled = true;
+
+  scene3d = new THREE.Scene();
+  camera3d = new THREE.PerspectiveCamera(45, canvas.width / canvas.height, 0.1, 10000);
+  camera3d.position.set(200, 200, 200);
+  camera3d.lookAt(0, 0, 0);
+
+  // Lights
+  scene3d.add(new THREE.AmbientLight(0xffffff, 0.6));
+  const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+  dir.position.set(200, 300, 200); dir.castShadow = true; scene3d.add(dir);
+  const hemi = new THREE.HemisphereLight(0x87ceeb, 0x333333, 0.3); scene3d.add(hemi);
+
+  // Grid helper
+  const grid = new THREE.GridHelper(400, 20, 0x444444, 0x2a2a2a);
+  scene3d.add(grid);
+
+  // Axes
+  const axes = new THREE.AxesHelper(50); scene3d.add(axes);
+
+  // 3D orbit controls
+  c.addEventListener('mousedown', (e) => {
+    if (!is3D) return;
+    orbit3d.active = true;
+    orbit3d.startX = e.clientX; orbit3d.startY = e.clientY;
+    orbit3d.startTheta = orbit3d.theta; orbit3d.startPhi = orbit3d.phi;
+  });
+  c.addEventListener('mousemove', (e) => {
+    if (!is3D || !orbit3d.active) return;
+    orbit3d.theta = orbit3d.startTheta + (e.clientX - orbit3d.startX) * 0.01;
+    orbit3d.phi = Math.max(0.05, Math.min(Math.PI - 0.05, orbit3d.startPhi - (e.clientY - orbit3d.startY) * 0.01));
+    update3DCamera(); render3D();
+  });
+  c.addEventListener('mouseup', () => { orbit3d.active = false; });
+  c.addEventListener('wheel', (e) => {
+    if (!is3D) return;
+    orbit3d.radius = Math.max(50, orbit3d.radius + e.deltaY * 0.5);
+    update3DCamera(); render3D();
+  }, { passive: true });
+
+  is3DInit = true;
+  add3DBox(); add3DSphere();
+}
+
+function update3DCamera() {
+  if (!camera3d) return;
+  camera3d.position.x = orbit3d.radius * Math.sin(orbit3d.phi) * Math.sin(orbit3d.theta);
+  camera3d.position.y = orbit3d.radius * Math.cos(orbit3d.phi);
+  camera3d.position.z = orbit3d.radius * Math.sin(orbit3d.phi) * Math.cos(orbit3d.theta);
+  camera3d.lookAt(0, 0, 0);
+}
+
+function render3D() {
+  if (!renderer3d || !scene3d || !camera3d) return;
+  renderer3d.setClearColor(document.body.classList.contains('light') ? 0xf8f9fa : 0x0e0f11);
+  renderer3d.render(scene3d, camera3d);
+}
+
+function toggle3D() {
+  is3D = !is3D;
+  const c2 = document.getElementById('canvas2d');
+  const c3 = document.getElementById('canvas3d');
+  c2.style.display = is3D ? 'none' : 'block';
+  c3.style.display = is3D ? 'block' : 'none';
+  if (is3D) {
+    init3D();
+    render3D();
+    document.getElementById('btn-toggle3d').classList.add('active');
+    cmdLog('3D view activated. Click+drag to orbit, scroll to zoom.', 'info');
+  } else {
+    document.getElementById('btn-toggle3d').classList.remove('active');
+    render();
+    cmdLog('2D view', 'info');
+  }
+}
+
+const mat3dColors = [0x4fc3f7, 0x81c995, 0xfdd663, 0xf28b82, 0xc58af9, 0xffb74d];
+let mat3dIdx = 0;
+function nextMat() {
+  const c = mat3dColors[mat3dIdx % mat3dColors.length]; mat3dIdx++;
+  return new THREE.MeshPhongMaterial({ color: c, transparent: true, opacity: 0.85, shininess: 80 });
+}
+
+function add3DBox() {
+  if (!is3DInit) init3D();
+  const geo = new THREE.BoxGeometry(60, 40, 60);
+  const mesh = new THREE.Mesh(geo, nextMat());
+  mesh.position.set((Math.random() - 0.5) * 120, 20, (Math.random() - 0.5) * 120);
+  mesh.castShadow = true; mesh.receiveShadow = true;
+  scene3d.add(mesh);
+  const edges = new THREE.EdgesGeometry(geo);
+  const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.2 }));
+  mesh.add(line);
+  if (is3D) render3D();
+  cmdLog('Added 3D Box', 'success');
+}
+function add3DSphere() {
+  if (!is3DInit) init3D();
+  const geo = new THREE.SphereGeometry(30, 32, 32);
+  const mesh = new THREE.Mesh(geo, nextMat());
+  mesh.position.set((Math.random() - 0.5) * 120, 30, (Math.random() - 0.5) * 120);
+  mesh.castShadow = true;
+  scene3d.add(mesh);
+  if (is3D) render3D();
+  cmdLog('Added 3D Sphere', 'success');
+}
+function add3DCylinder() {
+  if (!is3DInit) init3D();
+  const geo = new THREE.CylinderGeometry(20, 20, 60, 32);
+  const mesh = new THREE.Mesh(geo, nextMat());
+  mesh.position.set((Math.random() - 0.5) * 120, 30, (Math.random() - 0.5) * 120);
+  scene3d.add(mesh);
+  if (is3D) render3D();
+  cmdLog('Added 3D Cylinder', 'success');
+}
+function add3DCone() {
+  if (!is3DInit) init3D();
+  const geo = new THREE.ConeGeometry(25, 60, 32);
+  const mesh = new THREE.Mesh(geo, nextMat());
+  mesh.position.set((Math.random() - 0.5) * 120, 30, (Math.random() - 0.5) * 120);
+  scene3d.add(mesh);
+  if (is3D) render3D();
+  cmdLog('Added 3D Cone', 'success');
+}
+function add3DTorus() {
+  if (!is3DInit) init3D();
+  const geo = new THREE.TorusGeometry(30, 8, 16, 100);
+  const mesh = new THREE.Mesh(geo, nextMat());
+  mesh.position.set((Math.random() - 0.5) * 100, 30, (Math.random() - 0.5) * 100);
+  scene3d.add(mesh);
+  if (is3D) render3D();
+  cmdLog('Added 3D Torus', 'success');
+}
+
+// ══════════════════════════════════════════════════════════
+//  KEYBOARD
+// ══════════════════════════════════════════════════════════
+function setupKeyboard() {
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    const key = e.key.toLowerCase();
+    if (e.ctrlKey) {
+      switch (key) {
+        case 'z': e.preventDefault(); undo(); break;
+        case 'y': e.preventDefault(); redo(); break;
+        case 'c': e.preventDefault(); copySelected(); break;
+        case 'v': e.preventDefault(); pasteObjects(); break;
+        case 'a': e.preventDefault(); selectAll(); break;
+        case 's': e.preventDefault(); saveFile(); break;
+        case 'n': e.preventDefault(); newFile(); break;
+        case 'o': e.preventDefault(); openFile(); break;
+      }
+      return;
+    }
+    switch (key) {
+      case 'escape': setTool('select'); break;
+      case 'delete': case 'backspace': deleteSelected(); break;
+      case 'l': setTool('line'); break;
+      case 'c': setTool('circle'); break;
+      case 'r': setTool('rect'); break;
+      case 'a': setTool('arc'); break;
+      case 't': setTool('text'); break;
+      case 'm': setTool('move'); break;
+      case 'h': setTool('hatch'); break;
+      case 'g': toggleGrid(); break;
+      case 'f': fitToWindow(); break;
+      case '+': case '=': zoomIn(); break;
+      case '-': zoomOut(); break;
+      case 'enter':
+        if (currentTool === 'polyline' && toolState.points?.length >= 2) { commitPolyline(toolState.points); resetTool(); }
+        if (currentTool === 'measure_area' && toolState.points?.length >= 3) {
+          const area = computePolygonArea(toolState.points);
+          const perim = computePolygonPerim(toolState.points);
+          cmdLog(`Area: ${area.toFixed(4)} ${currentUnits}² | Perimeter: ${perim.toFixed(4)} ${currentUnits}`, 'success');
+          resetTool();
+        }
+        break;
+    }
+  });
+
+  // Command line
+  document.getElementById('cmd-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      const cmd = e.target.value.trim().toUpperCase();
+      e.target.value = '';
+      processCommand(cmd);
+    }
+  });
+}
+
+function processCommand(cmd) {
+  cmdLog(`> ${cmd}`, 'info');
+  const parts = cmd.split(/\s+/);
+  switch (parts[0]) {
+    case 'LINE': case 'L': setTool('line'); break;
+    case 'CIRCLE': case 'C': setTool('circle'); break;
+    case 'RECT': case 'R': case 'RECTANGLE': setTool('rect'); break;
+    case 'ARC': case 'A': setTool('arc'); break;
+    case 'TEXT': case 'T': case 'DT': setTool('text'); break;
+    case 'POLYLINE': case 'PL': setTool('polyline'); break;
+    case 'MOVE': case 'M': setTool('move'); break;
+    case 'ROTATE': case 'RO': setTool('rotate'); break;
+    case 'SCALE': case 'SC': setTool('scale_tool'); break;
+    case 'OFFSET': case 'O': setTool('offset'); break;
+    case 'MIRROR': case 'MI': mirrorSelected(); break;
+    case 'ERASE': case 'E': deleteSelected(); break;
+    case 'COPY': case 'CO': copySelected(); break;
+    case 'PASTE': pasteObjects(); break;
+    case 'UNDO': case 'U': undo(); break;
+    case 'REDO': redo(); break;
+    case 'ZOOM':
+      if (parts[1] === 'E' || parts[1] === 'EXTENTS') fitToWindow();
+      else if (parts[1] === 'IN') zoomIn();
+      else if (parts[1] === 'OUT') zoomOut();
+      else fitToWindow();
+      break;
+    case 'GRID': toggleGrid(); break;
+    case 'ORTHO': toggleOrtho(); break;
+    case 'DIST': setTool('measure_dist'); break;
+    case 'AREA': setTool('measure_area'); break;
+    case 'HATCH': case 'H': setTool('hatch'); break;
+    case 'LEADER': case 'LE': setTool('leader'); break;
+    case 'LAYER': case 'LA': switchPanel('layers'); break;
+    case '3D': case 'VIEW3D': toggle3D(); break;
+    case 'NEW': newFile(); break;
+    case 'OPEN': openFile(); break;
+    case 'SAVE': saveFile(); break;
+    case 'PURGE': objects = objects.filter(o => !selectedObjs.includes(o)); selectedObjs = []; render(); cmdLog('Purged selection from drawing', 'warn'); break;
+    case 'UNITS': cmdLog(`Units: ${currentUnits}. Use UNITS mm/cm/m/in/ft`, 'info'); if (parts[1]) currentUnits = parts[1].toLowerCase(); break;
+    case 'PRECISION': cmdLog('Precision: 4 decimal places (default)', 'info'); break;
+    case 'HELP': showHelp(); break;
+    default: cmdLog(`Unknown command: ${parts[0]}. Type HELP for list.`, 'error');
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+//  UI HELPERS
+// ══════════════════════════════════════════════════════════
+function cmdLog(msg, type = '') {
+  const out = document.getElementById('cmd-output');
+  const el = document.createElement('div');
+  el.className = 'cmd-msg ' + type;
+  el.textContent = msg;
+  out.appendChild(el);
+  out.scrollTop = out.scrollHeight;
+  if (out.children.length > 100) out.removeChild(out.firstChild);
+}
+
+function updateCoordDisplay(pos) {
+  document.getElementById('cx').textContent = pos.x.toFixed(3);
+  document.getElementById('cy').textContent = pos.y.toFixed(3);
+  document.getElementById('cz').textContent = '0.000';
+  if (toolState.firstPoint || toolState.p1) {
+    const fp = toolState.firstPoint || toolState.p1;
+    const d = Math.hypot(pos.x - fp.x, pos.y - fp.y);
+    document.getElementById('cdelta').textContent = d.toFixed(3);
+  } else {
+    document.getElementById('cdelta').textContent = '—';
+  }
+}
+
+function updateCoords() { updateCoordDisplay(snapPos); }
+
+function updateZoomLabel() {
+  document.getElementById('zoom-label').textContent = Math.round(zoom * 100) + '%';
+}
+
+function showMeasDisplay(text) {
+  const el = document.getElementById('meas-display');
+  el.textContent = text; el.style.display = 'block';
+}
+function hideMeasDisplay() { document.getElementById('meas-display').style.display = 'none'; }
+
+function updateProperties() {
+  if (!document.getElementById('properties-panel').style.display !== 'none') return;
+  const sel = selectedObjs;
+  document.getElementById('prop-count').textContent = sel.length;
+  if (sel.length === 1) {
+    const obj = sel[0];
+    document.getElementById('prop-type').textContent = obj.type;
+    document.getElementById('prop-layer').textContent = layers[obj.layer]?.name || '0';
+    const b = getObjectBounds(obj);
+    if (b) {
+      document.getElementById('prop-x').textContent = b.x.toFixed(3);
+      document.getElementById('prop-y').textContent = b.y.toFixed(3);
+      document.getElementById('prop-w').textContent = b.w.toFixed(3);
+      document.getElementById('prop-h').textContent = b.h.toFixed(3);
+    }
+    if (obj.type === 'line') {
+      const d = Math.hypot(obj.x2 - obj.x1, obj.y2 - obj.y1);
+      document.getElementById('prop-len').textContent = d.toFixed(3);
+      const a = Math.atan2(obj.y2 - obj.y1, obj.x2 - obj.x1) * 180 / Math.PI;
+      document.getElementById('prop-ang').textContent = a.toFixed(2) + '°';
+    }
+    document.getElementById('prop-color').textContent = obj.color || '—';
+    document.getElementById('prop-lw').textContent = (obj.lineWidth || 1) + 'px';
+  } else {
+    ['prop-type','prop-layer','prop-x','prop-y','prop-w','prop-h','prop-len','prop-ang','prop-color','prop-lw'].forEach(id => document.getElementById(id).textContent = '—');
+  }
+}
+
+function updateObjectList() {
+  const list = document.getElementById('object-list');
+  list.innerHTML = '';
+  objects.forEach((obj, i) => {
+    const el = document.createElement('div');
+    el.style.cssText = 'padding:4px 6px;border-radius:3px;cursor:pointer;font-size:11px;color:var(--text1);display:flex;gap:6px;align-items:center;';
+    el.innerHTML = `<span style="color:var(--text2);font-family:var(--font-mono)">${i+1}</span><span style="flex:1">${obj.type}</span><span style="color:${obj.color||layers[obj.layer]?.color||'#fff'};font-size:10px">●</span>`;
+    el.onclick = () => { selectedObjs = [obj]; render(); };
+    if (selectedObjs.includes(obj)) el.style.background = 'var(--bg3)';
+    list.appendChild(el);
+  });
+}
+
+function switchPanel(panel) {
+  ['layers','properties','objects'].forEach(p => {
+    document.getElementById(p + '-panel').style.display = p === panel ? '' : 'none';
+  });
+  document.querySelectorAll('.panel-tab').forEach((t, i) => {
+    t.classList.toggle('active', ['layers','properties','objects'][i] === panel);
+  });
+}
+
+function setupColorSwatches() {
+  const colors = ['#4fc3f7','#81c995','#fdd663','#f28b82','#c58af9','#ffb74d','#ffffff','#9aa0a6','#ff6b6b','#51cf66','#339af0','#e64980'];
+  const container = document.getElementById('color-swatches');
+  colors.forEach(c => {
+    const sw = document.createElement('div');
+    sw.className = 'color-swatch' + (c === currentColor ? ' active' : '');
+    sw.style.background = c;
+    sw.onclick = () => {
+      currentColor = c;
+      document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+      sw.classList.add('active');
+      document.getElementById('custom-color').value = c;
+    };
+    container.appendChild(sw);
+  });
+  document.getElementById('custom-color').addEventListener('input', (e) => {
+    currentColor = e.target.value;
+    document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+  });
+}
+
+function setLineWidth(w) {
+  currentLineWidth = w;
+  document.querySelectorAll('#right-panel .color-swatch').forEach((el, i) => {
+    el.classList.toggle('active', [1,2,3,5][i] === w);
+  });
+}
+
+function setLineDash(d) { currentLineDash = d; }
+
+// ══════════════════════════════════════════════════════════
+//  MATH HELPERS
+// ══════════════════════════════════════════════════════════
+function computePolygonArea(pts) {
+  let area = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const j = (i + 1) % pts.length;
+    area += pts[i].x * pts[j].y;
+    area -= pts[j].x * pts[i].y;
+  }
+  return Math.abs(area / 2);
+}
+function computePolygonPerim(pts) {
+  let p = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const j = (i + 1) % pts.length;
+    p += Math.hypot(pts[j].x - pts[i].x, pts[j].y - pts[i].y);
+  }
+  return p;
+}
+
+// ══════════════════════════════════════════════════════════
+//  FILE OPERATIONS
+// ══════════════════════════════════════════════════════════
+function newFile() {
+  if (objects.length > 0) {
+    if (!confirm('Start new drawing? Unsaved changes will be lost.')) return;
+  }
+  objects = []; selectedObjs = []; undoStack = []; redoStack = [];
+  panX = canvas.width / 2; panY = canvas.height / 2; zoom = 1;
+  document.getElementById('doc-name').textContent = 'untitled.dxf';
+  render(); cmdLog('New drawing', 'info');
+}
+
+function openFile() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json,.dxf,.dwg,.obj,.stl';
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const ext = file.name.split('.').pop().toLowerCase();
+    document.getElementById('doc-name').textContent = file.name;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      if (ext === 'json') {
+        try {
+          const data = JSON.parse(ev.target.result);
+          objects = data.objects || [];
+          layers = data.layers || layers;
+          renderLayers(); render();
+          cmdLog(`Opened: ${file.name}`, 'success');
+        } catch { cmdLog('Error parsing file', 'error'); }
+      } else if (ext === 'dxf') {
+        parseDXF(ev.target.result);
+        cmdLog(`Imported DXF: ${file.name} (basic entity support)`, 'success');
+      } else if (ext === 'obj') {
+        parseOBJ(ev.target.result);
+        cmdLog(`Imported OBJ: ${file.name} (wireframe view)`, 'success');
+      } else {
+        cmdLog(`File format .${ext} loaded (${file.name}) — binary formats require a converter plugin.`, 'warn');
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+function parseDXF(text) {
+  const lines = text.split('\n').map(l => l.trim());
+  let i = 0; let inEntities = false;
+  while (i < lines.length) {
+    if (lines[i] === 'ENTITIES') inEntities = true;
+    if (lines[i] === 'ENDSEC' && inEntities) inEntities = false;
+    if (inEntities && lines[i] === '0') {
+      i++;
+      const type = lines[i];
+      if (type === 'LINE') {
+        const obj = { type: 'line', x1: 0, y1: 0, x2: 0, y2: 0, color: currentColor, lineWidth: 1, lineDash: [], layer: 0 };
+        while (i < lines.length && lines[i] !== '0') {
+          const code = parseInt(lines[i]); i++;
+          const val = parseFloat(lines[i]);
+          if (code === 10) obj.x1 = val;
+          else if (code === 20) obj.y1 = -val;
+          else if (code === 11) obj.x2 = val;
+          else if (code === 21) obj.y2 = -val;
+          i++;
+        }
+        objects.push(obj); continue;
+      } else if (type === 'CIRCLE') {
+        const obj = { type: 'circle', cx: 0, cy: 0, r: 10, color: currentColor, lineWidth: 1, lineDash: [], layer: 0 };
+        while (i < lines.length && lines[i] !== '0') {
+          const code = parseInt(lines[i]); i++;
+          const val = parseFloat(lines[i]);
+          if (code === 10) obj.cx = val;
+          else if (code === 20) obj.cy = -val;
+          else if (code === 40) obj.r = val;
+          i++;
+        }
+        objects.push(obj); continue;
+      }
+    }
+    i++;
+  }
+  fitToWindow(); render();
+}
+
+function parseOBJ(text) {
+  const verts = [];
+  const lines = text.split('\n');
+  for (const line of lines) {
+    const parts = line.trim().split(/\s+/);
+    if (parts[0] === 'v') {
+      verts.push({ x: parseFloat(parts[1]) * 10, y: parseFloat(parts[2]) * 10, z: parseFloat(parts[3]) * 10 });
+    } else if (parts[0] === 'f') {
+      const idxs = parts.slice(1).map(p => parseInt(p.split('/')[0]) - 1);
+      for (let i = 0; i < idxs.length; i++) {
+        const a = verts[idxs[i]], b = verts[idxs[(i + 1) % idxs.length]];
+        if (a && b) objects.push({ type: 'line', x1: a.x, y1: -a.y, x2: b.x, y2: -b.y, color: currentColor, lineWidth: 0.5, lineDash: [], layer: 0 });
+      }
+    } else if (parts[0] === 'l') {
+      const pts = parts.slice(1).map(p => verts[parseInt(p) - 1]).filter(Boolean).map(v => ({ x: v.x, y: -v.y }));
+      if (pts.length >= 2) objects.push({ type: 'polyline', points: pts, color: currentColor, lineWidth: 1, lineDash: [], layer: 0 });
+    }
+  }
+  fitToWindow(); render();
+}
+
+function saveFile() {
+  const data = JSON.stringify({ objects, layers, version: '1.0' }, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'drawing.procad.json'; a.click();
+  URL.revokeObjectURL(url);
+  cmdLog('Saved drawing (ProCAD JSON format)', 'success');
+}
+
+function exportPNG() {
+  const a = document.createElement('a');
+  a.href = canvas.toDataURL('image/png');
+  a.download = 'drawing.png'; a.click();
+  cmdLog('Exported PNG', 'success');
+}
+
+function exportDXF() {
+  let dxf = '0\nSECTION\n2\nHEADER\n0\nENDSEC\n0\nSECTION\n2\nENTITIES\n';
+  for (const obj of objects) {
+    if (obj.type === 'line') {
+      dxf += `0\nLINE\n8\n0\n10\n${obj.x1}\n20\n${-obj.y1}\n30\n0\n11\n${obj.x2}\n21\n${-obj.y2}\n31\n0\n`;
+    } else if (obj.type === 'circle') {
+      dxf += `0\nCIRCLE\n8\n0\n10\n${obj.cx}\n20\n${-obj.cy}\n30\n0\n40\n${obj.r}\n`;
+    } else if (obj.type === 'rect') {
+      const corners = [[obj.x,obj.y],[obj.x+obj.w,obj.y],[obj.x+obj.w,obj.y+obj.h],[obj.x,obj.y+obj.h],[obj.x,obj.y]];
+      for (let i = 0; i < 4; i++) {
+        dxf += `0\nLINE\n8\n0\n10\n${corners[i][0]}\n20\n${-corners[i][1]}\n30\n0\n11\n${corners[i+1][0]}\n21\n${-corners[i+1][1]}\n31\n0\n`;
+      }
+    } else if (obj.type === 'text') {
+      dxf += `0\nTEXT\n8\n0\n10\n${obj.x}\n20\n${-obj.y}\n30\n0\n40\n${obj.fontSize||14}\n1\n${obj.text}\n`;
+    }
+  }
+  dxf += '0\nENDSEC\n0\nEOF\n';
+  const blob = new Blob([dxf], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'drawing.dxf'; a.click();
+  URL.revokeObjectURL(url);
+  cmdLog('Exported DXF (AutoCAD compatible)', 'success');
+}
+
+function exportPDF() {
+  cmdLog('PDF export: Print this page (Ctrl+P) and select "Save as PDF" — or install a PDF library plugin.', 'info');
+  window.print();
+}
+
+function autoSave() {
+  if (objects.length === 0) return;
+  localStorage.setItem('procad_autosave', JSON.stringify({ objects, layers }));
+  cmdLog('Auto-saved', 'info');
+}
+
+// ══════════════════════════════════════════════════════════
+//  THEME
+// ══════════════════════════════════════════════════════════
+function toggleTheme() {
+  document.body.classList.toggle('light');
+  const isLight = document.body.classList.contains('light');
+  document.getElementById('theme-btn').textContent = isLight ? '🌙 Dark' : '☀ Light';
+  if (renderer3d) renderer3d.setClearColor(isLight ? 0xf8f9fa : 0x0e0f11);
+  render();
+}
+
+// ══════════════════════════════════════════════════════════
+//  CONTEXT MENU
+// ══════════════════════════════════════════════════════════
+function showCtx(x, y) {
+  const menu = document.getElementById('ctx-menu');
+  menu.style.left = x + 'px'; menu.style.top = y + 'px'; menu.style.display = 'block';
+  setTimeout(() => document.addEventListener('click', hideCtx, { once: true }), 50);
+}
+function hideCtx() { document.getElementById('ctx-menu').style.display = 'none'; }
+
+// ══════════════════════════════════════════════════════════
+//  MODALS
+// ══════════════════════════════════════════════════════════
+function showModal(title, bodyHTML, btns) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = bodyHTML;
+  const btnRow = document.getElementById('modal-btns');
+  btnRow.innerHTML = '';
+  btns.forEach(b => {
+    const el = document.createElement('button');
+    el.className = 'btn' + (b.primary ? ' primary' : '');
+    el.textContent = b.label;
+    el.onclick = b.fn;
+    btnRow.appendChild(el);
+  });
+  document.getElementById('modal-overlay').style.display = 'flex';
+  setTimeout(() => { const first = document.querySelector('#modal-body input,#modal-body textarea'); if (first) first.focus(); }, 50);
+}
+function closeModal() { document.getElementById('modal-overlay').style.display = 'none'; }
+
+function showHelp() {
+  showModal('Keyboard Shortcuts', `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 20px;font-size:12px;font-family:var(--font-mono)">
+      <div style="color:var(--text2)">L</div><div>Line</div>
+      <div style="color:var(--text2)">PL / Enter</div><div>Polyline / Finish</div>
+      <div style="color:var(--text2)">R</div><div>Rectangle</div>
+      <div style="color:var(--text2)">C</div><div>Circle</div>
+      <div style="color:var(--text2)">A</div><div>Arc</div>
+      <div style="color:var(--text2)">T</div><div>Text</div>
+      <div style="color:var(--text2)">H</div><div>Hatch</div>
+      <div style="color:var(--text2)">M</div><div>Move</div>
+      <div style="color:var(--text2)">Esc</div><div>Select / Cancel</div>
+      <div style="color:var(--text2)">Del</div><div>Delete</div>
+      <div style="color:var(--text2)">F</div><div>Fit to window</div>
+      <div style="color:var(--text2)">G</div><div>Toggle grid</div>
+      <div style="color:var(--text2)">+/-</div><div>Zoom in/out</div>
+      <div style="color:var(--text2)">Ctrl+Z/Y</div><div>Undo / Redo</div>
+      <div style="color:var(--text2)">Ctrl+A</div><div>Select all</div>
+      <div style="color:var(--text2)">Ctrl+C/V</div><div>Copy / Paste</div>
+      <div style="color:var(--text2)">Ctrl+S</div><div>Save</div>
+      <div style="color:var(--text2)">Right-drag</div><div>Pan view</div>
+      <div style="color:var(--text2)">Scroll</div><div>Zoom</div>
+      <div style="color:var(--text2)">Dbl-click</div><div>Finish polyline/area</div>
+    </div>
+    <div style="margin-top:12px;font-size:11px;color:var(--text2)">Commands (cmd line): LINE, CIRCLE, RECT, ARC, TEXT, PL, MOVE, ROTATE, SCALE, OFFSET, MIRROR, DIST, AREA, HATCH, LEADER, ZOOM E/IN/OUT, GRID, ORTHO, LAYER, 3D, UNITS mm/cm/m/in/ft, UNDO, REDO, NEW, OPEN, SAVE, HELP</div>
+  `, [{ label: 'Close', fn: closeModal }]);
+}
+
+function showAbout() {
+  showModal('About ProCAD', `
+    <div style="text-align:center;padding:10px 0">
+      <div style="font-size:32px;margin-bottom:8px">⬡</div>
+      <div style="font-size:18px;font-weight:600;color:var(--accent)">ProCAD 1.0</div>
+      <div style="font-size:12px;color:var(--text2);margin-top:6px">Professional CAD Suite</div>
+      <div style="font-size:11px;color:var(--text2);margin-top:12px;line-height:1.7">
+        2D drawing + 3D visualization<br>
+        Three.js · HTML5 Canvas · Vanilla JS<br>
+        DXF import/export · OBJ import<br>
+        Snap, layers, measurement tools
+      </div>
+    </div>
+  `, [{ label: 'Close', fn: closeModal }]);
+}
+
+function showSettings() {
+  showModal('Preferences', `
+    <div class="modal-row"><span class="modal-label">Units</span>
+      <select class="modal-input" id="pref-units">
+        <option value="mm">Millimeters</option><option value="cm">Centimeters</option>
+        <option value="m">Meters</option><option value="in">Inches</option><option value="ft">Feet</option>
+      </select>
+    </div>
+    <div class="modal-row"><span class="modal-label">Grid spacing</span><input class="modal-input" type="number" id="pref-grid" value="${gridSpacing}"></div>
+    <div class="modal-row"><span class="modal-label">Precision</span>
+      <select class="modal-input" id="pref-prec"><option>2</option><option selected>4</option><option>6</option></select>
+    </div>
+    <div class="modal-row"><span class="modal-label">Auto-save</span>
+      <select class="modal-input" id="pref-auto"><option>Every 60s</option><option>Every 5min</option><option>Off</option></select>
+    </div>
+  `, [
+    { label: 'Cancel', fn: closeModal },
+    { label: 'Apply', primary: true, fn: () => {
+      currentUnits = document.getElementById('pref-units').value;
+      gridSpacing = +document.getElementById('pref-grid').value;
+      closeModal(); render();
+      cmdLog('Settings applied', 'success');
+    }}
+  ]);
+}
+
+// ══════════════════════════════════════════════════════════
+//  DEMO DRAWING
+// ══════════════════════════════════════════════════════════
+function loadDemoDrawing() {
+  objects = [
+    // Title block border
+    { type: 'rect', x: -200, y: -150, w: 400, h: 300, color: '#ffffff', lineWidth: 2, lineDash: [], layer: 0 },
+    // Center lines
+    { type: 'line', x1: -200, y1: 0, x2: 200, y2: 0, color: '#f28b82', lineWidth: 0.5, lineDash: [8, 4], layer: 2 },
+    { type: 'line', x1: 0, y1: -150, x2: 0, y2: 150, color: '#f28b82', lineWidth: 0.5, lineDash: [8, 4], layer: 2 },
+    // Main circle
+    { type: 'circle', cx: 0, cy: 0, r: 80, color: '#4fc3f7', lineWidth: 1.5, lineDash: [], layer: 0 },
+    // Inner circle
+    { type: 'circle', cx: 0, cy: 0, r: 30, color: '#4fc3f7', lineWidth: 1, lineDash: [], layer: 0 },
+    // Side rectangle
+    { type: 'rect', x: -160, y: -50, w: 60, h: 100, color: '#81c995', lineWidth: 1, lineDash: [], layer: 0 },
+    { type: 'rect', x: 100, y: -50, w: 60, h: 100, color: '#81c995', lineWidth: 1, lineDash: [], layer: 0 },
+    // Bolt holes
+    { type: 'circle', cx: -120, cy: 0, r: 8, color: '#fdd663', lineWidth: 1, lineDash: [], layer: 0 },
+    { type: 'circle', cx: 120, cy: 0, r: 8, color: '#fdd663', lineWidth: 1, lineDash: [], layer: 0 },
+    { type: 'circle', cx: 0, cy: -110, r: 8, color: '#fdd663', lineWidth: 1, lineDash: [], layer: 0 },
+    { type: 'circle', cx: 0, cy: 110, r: 8, color: '#fdd663', lineWidth: 1, lineDash: [], layer: 0 },
+    // Title text
+    { type: 'text', x: -190, y: 145, text: 'PART NO: FLANGE-001', fontSize: 11, color: '#9aa0a6', layer: 0 },
+    { type: 'text', x: 80, y: 145, text: 'Rev: A', fontSize: 11, color: '#9aa0a6', layer: 0 },
+    // Dimension
+    { type: 'dim_dist', p1: { x: 0, y: 0 }, p2: { x: 80, y: 0 }, layer: 0 },
+    // Hatch
+    { type: 'hatch', bounds: { x: -160, y: -50, w: 60, h: 100 }, color: '#81c995', layer: 0 },
+    { type: 'hatch', bounds: { x: 100, y: -50, w: 60, h: 100 }, color: '#81c995', layer: 0 },
+  ];
+  panX = canvas.width / 2; panY = canvas.height / 2; zoom = 1.4;
+  render();
+}
+
+// ══════════════════════════════════════════════════════════
+//  START
+// ══════════════════════════════════════════════════════════
+init();
+loadDemoDrawing();
+cmdLog('Demo drawing loaded. Use drawing tools above or type commands below.', 'info');
+</script>
+</body>
+</html>
