@@ -1,0 +1,2002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProCAD - Professional CAD Software</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1e1e1e;
+            color: #ffffff;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .toolbar {
+            background-color: #2d2d30;
+            padding: 8px;
+            border-bottom: 1px solid #3e3e42;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .tool-group {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+
+        .tool-group label {
+            font-size: 12px;
+            color: #cccccc;
+            margin-right: 5px;
+        }
+
+        .tool-btn {
+            background-color: #3c3c3c;
+            border: 1px solid #555555;
+            color: #ffffff;
+            padding: 6px 12px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .tool-btn:hover {
+            background-color: #505050;
+            border-color: #777777;
+        }
+
+        .tool-btn.active {
+            background-color: #007acc;
+            border-color: #007acc;
+        }
+
+        .separator {
+            width: 1px;
+            height: 20px;
+            background-color: #555555;
+            margin: 0 5px;
+        }
+
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            background-color: #1e1e1e;
+        }
+
+        canvas {
+            display: block;
+            background-color: #ffffff;
+            cursor: crosshair;
+        }
+
+        .properties-panel {
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 250px;
+            height: 100%;
+            background-color: #2d2d30;
+            border-left: 1px solid #3e3e42;
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        .panel-header {
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #007acc;
+        }
+
+        .property-group {
+            margin-bottom: 15px;
+        }
+
+        .property-label {
+            display: block;
+            font-size: 12px;
+            color: #cccccc;
+            margin-bottom: 5px;
+        }
+
+        .property-input {
+            width: 100%;
+            padding: 5px;
+            background-color: #3c3c3c;
+            border: 1px solid #555555;
+            color: #ffffff;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+
+        .color-picker {
+            width: 30px;
+            height: 30px;
+            border: 1px solid #555555;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+
+        .status-bar {
+            background-color: #007acc;
+            color: #ffffff;
+            padding: 5px 15px;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .command-line {
+            position: absolute;
+            bottom: 30px;
+            left: 10px;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: #ffffff;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            display: none;
+        }
+
+        .command-line.show {
+            display: block;
+        }
+
+        .command-input {
+            background: transparent;
+            border: none;
+            color: #ffffff;
+            outline: none;
+            width: 200px;
+        }
+
+        .layers-panel {
+            position: absolute;
+            left: 10px;
+            top: 50px;
+            width: 200px;
+            background-color: #2d2d30;
+            border: 1px solid #3e3e42;
+            border-radius: 3px;
+            padding: 10px;
+            display: none;
+        }
+
+        .layer-item {
+            padding: 5px;
+            cursor: pointer;
+            border-radius: 3px;
+            margin-bottom: 2px;
+        }
+
+        .layer-item:hover {
+            background-color: #3c3c3c;
+        }
+
+        .layer-item.active {
+            background-color: #007acc;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background-color: #2d2d30;
+            padding: 20px;
+            border-radius: 5px;
+            border: 1px solid #3e3e42;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .modal-header {
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #007acc;
+        }
+
+        .modal-body {
+            margin-bottom: 15px;
+        }
+
+        .modal-footer {
+            text-align: right;
+        }
+
+        .btn {
+            background-color: #007acc;
+            color: #ffffff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        .btn:hover {
+            background-color: #005a9e;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background-color: #545b62;
+        }
+
+        .file-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+        }
+
+        .file-item {
+            padding: 5px;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+
+        .file-item:hover {
+            background-color: #3c3c3c;
+        }
+
+        .file-item.selected {
+            background-color: #007acc;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #3c3c3c;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: #007acc;
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #2d2d30;
+            border: 1px solid #3e3e42;
+            border-radius: 3px;
+            z-index: 1;
+            min-width: 120px;
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+
+        .dropdown-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            color: #ffffff;
+            font-size: 12px;
+        }
+
+        .dropdown-item:hover {
+            background-color: #3c3c3c;
+        }
+
+        .ribbon {
+            background-color: #2d2d30;
+            border-bottom: 1px solid #3e3e42;
+            display: flex;
+            align-items: center;
+            padding: 5px;
+        }
+
+        .ribbon-tab {
+            padding: 8px 15px;
+            cursor: pointer;
+            border-radius: 3px;
+            margin-right: 5px;
+            color: #cccccc;
+        }
+
+        .ribbon-tab.active {
+            background-color: #007acc;
+            color: #ffffff;
+        }
+
+        .ribbon-panel {
+            display: none;
+            padding: 10px;
+            background-color: #252526;
+            border: 1px solid #3e3e42;
+            border-radius: 3px;
+            margin-top: 5px;
+        }
+
+        .ribbon-panel.show {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .ribbon-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 5px;
+            min-width: 80px;
+        }
+
+        .ribbon-group-title {
+            font-size: 10px;
+            color: #cccccc;
+            margin-top: 5px;
+        }
+
+        .ribbon-btn {
+            background: none;
+            border: none;
+            color: #ffffff;
+            padding: 5px;
+            cursor: pointer;
+            border-radius: 3px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 11px;
+        }
+
+        .ribbon-btn:hover {
+            background-color: #3c3c3c;
+        }
+
+        .ribbon-btn.active {
+            background-color: #007acc;
+        }
+
+        .ribbon-icon {
+            font-size: 16px;
+            margin-bottom: 2px;
+        }
+
+        .context-menu {
+            position: absolute;
+            background-color: #2d2d30;
+            border: 1px solid #3e3e42;
+            border-radius: 3px;
+            padding: 5px 0;
+            z-index: 1000;
+            min-width: 150px;
+            display: none;
+        }
+
+        .context-menu-item {
+            padding: 8px 15px;
+            cursor: pointer;
+            color: #ffffff;
+            font-size: 12px;
+        }
+
+        .context-menu-item:hover {
+            background-color: #3c3c3c;
+        }
+
+        .tooltip {
+            position: absolute;
+            background-color: #2d2d30;
+            color: #ffffff;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 1000;
+            display: none;
+            border: 1px solid #3e3e42;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #007acc;
+            color: #ffffff;
+            padding: 10px 15px;
+            border-radius: 3px;
+            z-index: 1000;
+            display: none;
+            animation: slideIn 0.3s;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+
+        .grid-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .ruler {
+            position: absolute;
+            background-color: #2d2d30;
+            color: #cccccc;
+            font-size: 10px;
+            padding: 2px 5px;
+            border-radius: 2px;
+            pointer-events: none;
+        }
+
+        .ruler.horizontal {
+            top: -20px;
+            left: 0;
+            transform: rotate(-90deg);
+            transform-origin: left bottom;
+        }
+
+        .ruler.vertical {
+            left: -40px;
+            top: 0;
+        }
+
+        .measurement {
+            position: absolute;
+            background-color: #007acc;
+            color: #ffffff;
+            padding: 2px 5px;
+            font-size: 10px;
+            border-radius: 2px;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .snap-indicator {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background-color: #ff6b35;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 5;
+            display: none;
+        }
+
+        .constraint-indicator {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background-color: #28a745;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 5;
+            display: none;
+        }
+
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #2d2d30;
+            padding: 20px;
+            border-radius: 5px;
+            border: 1px solid #3e3e42;
+            z-index: 1000;
+            display: none;
+        }
+
+        .spinner {
+            border: 4px solid #3c3c3c;
+            border-top: 4px solid #007acc;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .theme-light {
+            --bg-color: #ffffff;
+            --text-color: #000000;
+            --panel-bg: #f8f8f8;
+            --border-color: #e1e1e1;
+            --accent-color: #007acc;
+        }
+
+        .theme-dark {
+            --bg-color: #1e1e1e;
+            --text-color: #ffffff;
+            --panel-bg: #2d2d30;
+            --border-color: #3e3e42;
+            --accent-color: #007acc;
+        }
+
+        .theme-light body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        .theme-light .toolbar,
+        .theme-light .properties-panel,
+        .theme-light .layers-panel,
+        .theme-light .modal-content {
+            background-color: var(--panel-bg);
+            border-color: var(--border-color);
+        }
+
+        .theme-light .tool-btn,
+        .theme-light .property-input {
+            background-color: #ffffff;
+            border-color: var(--border-color);
+            color: var(--text-color);
+        }
+
+        .theme-light canvas {
+            background-color: var(--bg-color);
+        }
+
+        .theme-light .status-bar {
+            background-color: var(--accent-color);
+        }
+
+        .theme-light .ribbon {
+            background-color: var(--panel-bg);
+            border-color: var(--border-color);
+        }
+
+        .theme-light .ribbon-panel {
+            background-color: #ffffff;
+            border-color: var(--border-color);
+        }
+
+        .theme-light .ribbon-btn:hover,
+        .theme-light .layer-item:hover,
+        .theme-light .file-item:hover,
+        .theme-light .dropdown-item:hover,
+        .theme-light .context-menu-item:hover {
+            background-color: #e1e1e1;
+        }
+
+        .theme-light .layer-item.active,
+        .theme-light .file-item.selected,
+        .theme-light .ribbon-tab.active,
+        .theme-light .ribbon-btn.active {
+            background-color: var(--accent-color);
+            color: #ffffff;
+        }
+
+        .theme-light .tool-btn.active {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+            color: #ffffff;
+        }
+
+        .theme-light .panel-header,
+        .theme-light .modal-header {
+            color: var(--accent-color);
+        }
+
+        .theme-light .property-label,
+        .theme-light .ribbon-group-title,
+        .theme-light .ribbon-tab {
+            color: #666666;
+        }
+
+        .theme-light .tool-group label {
+            color: #666666;
+        }
+
+        .theme-light .separator {
+            background-color: var(--border-color);
+        }
+
+        .theme-light .notification {
+            background-color: var(--accent-color);
+        }
+
+        .theme-light .loading {
+            background-color: var(--panel-bg);
+            border-color: var(--border-color);
+        }
+
+        .theme-light .tooltip,
+        .theme-light .context-menu,
+        .theme-light .dropdown-content {
+            background-color: var(--panel-bg);
+            border-color: var(--border-color);
+            color: var(--text-color);
+        }
+
+        .theme-light .ruler {
+            background-color: var(--panel-bg);
+            color: #666666;
+            border-color: var(--border-color);
+        }
+
+        .theme-light .measurement {
+            background-color: var(--accent-color);
+        }
+
+        @media (max-width: 768px) {
+            .properties-panel {
+                width: 200px;
+            }
+
+            .layers-panel {
+                width: 150px;
+            }
+
+            .toolbar {
+                flex-wrap: wrap;
+                padding: 5px;
+            }
+
+            .tool-btn {
+                padding: 4px 8px;
+                font-size: 11px;
+            }
+
+            .ribbon {
+                flex-wrap: wrap;
+            }
+
+            .ribbon-tab {
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .properties-panel,
+            .layers-panel {
+                display: none;
+            }
+
+            .toolbar {
+                padding: 3px;
+            }
+
+            .tool-btn {
+                padding: 3px 6px;
+                font-size: 10px;
+            }
+
+            .ribbon {
+                display: none;
+            }
+
+            .status-bar {
+                padding: 3px 10px;
+                font-size: 11px;
+            }
+        }
+    </style>
+</head>
+<body class="theme-dark">
+    <div class="ribbon">
+        <div class="ribbon-tab active" data-tab="home">Home</div>
+        <div class="ribbon-tab" data-tab="insert">Insert</div>
+        <div class="ribbon-tab" data-tab="view">View</div>
+        <div class="ribbon-tab" data-tab="tools">Tools</div>
+    </div>
+
+    <div class="ribbon-panel show" id="home-panel">
+        <div class="ribbon-group">
+            <button class="ribbon-btn" id="select-tool">
+                <div class="ribbon-icon">⬜</div>
+                Select
+            </button>
+            <div class="ribbon-group-title">Selection</div>
+        </div>
+        <div class="ribbon-group">
+            <button class="ribbon-btn" id="line-tool">
+                <div class="ribbon-icon">━</div>
+                Line
+            </button>
+            <div class="ribbon-group-title">Draw</div>
+        </div>
+        <div class="ribbon-group">
+            <button class="ribbon-btn" id="circle-tool">
+                <div class="ribbon-icon">○</div>
+                Circle
+            </button>
+            <div class="ribbon-group-title">Shapes</div>
+        </div>
+        <div class="ribbon-group">
+            <button class="ribbon-btn" id="rectangle-tool">
+                <div class="ribbon-icon">▭</div>
+                Rectangle
+            </button>
+            <div class="ribbon-group-title">Shapes</div>
+        </div>
+        <div class="ribbon-group">
+            <button class="ribbon-btn" id="text-tool">
+                <div class="ribbon-icon">T</div>
+                Text
+            </button>
+            <div class="ribbon-group-title">Annotation</div>
+        </div>
+        <div class="ribbon-group">
+            <button class="ribbon-btn" id="undo-btn">
+                <div class="ribbon-icon">↶</div>
+                Undo
+            </button>
+            <div class="ribbon-group-title">Edit</div>
+        </div>
+        <div class="ribbon-group">
+            <button class="ribbon-btn" id="redo-btn">
+                <div class="ribbon-icon">↷</div>
+                Redo
+            </button>
+            <div class="ribbon-group-title">Edit</div>
+        </div>
+    </div>
+
+    <div class="ribbon-panel" id="insert-panel">
+        <div class="ribbon-group">
+            <button class="ribbon-btn" id="insert-image">
+                <div class="ribbon-icon">🖼️</div>
+                Image
+            </button>
+            <div class="ribbon-group-title">Media</div>
+        </div>
+        <div class="ribbon-group">
+            <button class="ribbon-btn" id="insert-symbol">
+                <div class="ribbon-icon">⚡</div>
+                Symbol
+            </button>
+            <div class="ribbon-group-title">Symbols</div>
+        </div>
+    </div>
+
+    <div class="ribbon-panel" id="view-panel">
+        <div class="ribbon-group">
+            <button class="ribbon-btn" id="zoom-in">
+                <div class="ribbon-icon">+</div>
+                Zoom In
+            </button>
+            <div class="ribbon-group-title">Zoom</div>
+        </div>
+        <div class="ribbon-group">
+            <button class="ribbon-btn" id="zoom-out">
+                <div class="ribbon-icon">-</div>
+                Zoom Out
+            </button>
+            <div class="ribbon-group-title">Zoom</div>
+        </div>
+        <div class="ribbon-group">
+            <button class="ribbon-btn" id="fit-to-screen">
+                <div class="ribbon-icon">⛶</div>
+                Fit
+            </button>
+            <div class="ribbon-group-title">View</div>
+        </div>
+        <div class="ribbon-group">
+            <button class="ribbon-btn" id="toggle-grid">
+                <div class="ribbon-icon">#</div>
+                Grid
+            </button>
+            <div class="ribbon-group-title">Display</div>
+        </div>
+        <div class="ribbon-group">
+            <button class="ribbon-btn" id="toggle-rulers">
+                <div class="ribbon-icon">📏</div>
+                Rulers
+            </button>
+            <div class="ribbon-group-title">Display</div>
+        </div>
+    </div>
+
+    <div class="ribbon-panel" id="tools-panel">
+        <div class="ribbon-group">
+            <button class="ribbon-btn" id="measure-tool">
+                <div class="ribbon-icon">📐</div>
+                Measure
+            </button>
+            <div class="ribbon-group-title">Analysis</div>
+        </div>
+        <div class="ribbon-group">
+            <button class="ribbon-btn" id="constraint-tool">
+                <div class="ribbon-icon">🔗</div>
+                Constraints
+            </button>
+            <div class="ribbon-group-title">Design</div>
+        </div>
+        <div class="ribbon-group">
+            <button class="ribbon-btn" id="export-btn">
+                <div class="ribbon-icon">💾</div>
+                Export
+            </button>
+            <div class="ribbon-group-title">File</div>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <div class="tool-group">
+            <label>Tool:</label>
+            <button class="tool-btn active" id="select-btn">Select</button>
+            <button class="tool-btn" id="line-btn">Line</button>
+            <button class="tool-btn" id="circle-btn">Circle</button>
+            <button class="tool-btn" id="rect-btn">Rectangle</button>
+            <button class="tool-btn" id="text-btn">Text</button>
+        </div>
+        <div class="separator"></div>
+        <div class="tool-group">
+            <label>Color:</label>
+            <input type="color" id="stroke-color" value="#000000" class="color-picker">
+            <input type="color" id="fill-color" value="#ffffff" class="color-picker">
+        </div>
+        <div class="separator"></div>
+        <div class="tool-group">
+            <label>Width:</label>
+            <input type="number" id="line-width" value="2" min="1" max="20" class="property-input" style="width: 60px;">
+        </div>
+        <div class="separator"></div>
+        <div class="tool-group">
+            <button class="tool-btn" id="undo">Undo</button>
+            <button class="tool-btn" id="redo">Redo</button>
+        </div>
+        <div class="separator"></div>
+        <div class="tool-group">
+            <button class="tool-btn" id="save-btn">Save</button>
+            <button class="tool-btn" id="load-btn">Load</button>
+            <button class="tool-btn" id="new-btn">New</button>
+        </div>
+        <div class="separator"></div>
+        <div class="tool-group">
+            <button class="tool-btn" id="layers-btn">Layers</button>
+            <button class="tool-btn" id="properties-btn">Properties</button>
+        </div>
+        <div class="separator"></div>
+        <div class="tool-group">
+            <button class="tool-btn" id="theme-toggle">Light Theme</button>
+        </div>
+    </div>
+
+    <div class="canvas-container">
+        <canvas id="canvas"></canvas>
+        <div class="grid-overlay" id="grid-overlay"></div>
+        <div class="properties-panel" id="properties-panel">
+            <div class="panel-header">Properties</div>
+            <div class="property-group">
+                <label class="property-label">X Position:</label>
+                <input type="number" id="prop-x" class="property-input" step="0.1">
+            </div>
+            <div class="property-group">
+                <label class="property-label">Y Position:</label>
+                <input type="number" id="prop-y" class="property-input" step="0.1">
+            </div>
+            <div class="property-group">
+                <label class="property-label">Width:</label>
+                <input type="number" id="prop-width" class="property-input" step="0.1">
+            </div>
+            <div class="property-group">
+                <label class="property-label">Height:</label>
+                <input type="number" id="prop-height" class="property-input" step="0.1">
+            </div>
+            <div class="property-group">
+                <label class="property-label">Rotation:</label>
+                <input type="number" id="prop-rotation" class="property-input" step="1">
+            </div>
+            <div class="property-group">
+                <label class="property-label">Stroke Color:</label>
+                <input type="color" id="prop-stroke-color" class="color-picker">
+            </div>
+            <div class="property-group">
+                <label class="property-label">Fill Color:</label>
+                <input type="color" id="prop-fill-color" class="color-picker">
+            </div>
+            <div class="property-group">
+                <label class="property-label">Line Width:</label>
+                <input type="number" id="prop-line-width" class="property-input" min="1" max="20">
+            </div>
+            <div class="property-group">
+                <label class="property-label">Opacity:</label>
+                <input type="range" id="prop-opacity" class="property-input" min="0" max="1" step="0.1">
+            </div>
+        </div>
+
+        <div class="layers-panel" id="layers-panel">
+            <div class="panel-header">Layers</div>
+            <div id="layers-list"></div>
+        </div>
+
+        <div class="command-line" id="command-line">
+            <span>Command:</span>
+            <input type="text" class="command-input" id="command-input">
+        </div>
+
+        <div class="snap-indicator" id="snap-indicator"></div>
+        <div class="constraint-indicator" id="constraint-indicator"></div>
+
+        <div class="tooltip" id="tooltip"></div>
+        <div class="context-menu" id="context-menu"></div>
+    </div>
+
+    <div class="status-bar">
+        <div id="status-text">Ready</div>
+        <div id="coordinates">X: 0, Y: 0</div>
+    </div>
+
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <div>Loading...</div>
+    </div>
+
+    <div class="notification" id="notification"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        class ProCAD {
+            constructor() {
+                this.canvas = document.getElementById('canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.shapes = [];
+                this.selectedShape = null;
+                this.currentTool = 'select';
+                this.strokeColor = '#000000';
+                this.fillColor = '#ffffff';
+                this.lineWidth = 2;
+                this.isDrawing = false;
+                this.startX = 0;
+                this.startY = 0;
+                this.offsetX = 0;
+                this.offsetY = 0;
+                this.scale = 1;
+                this.panX = 0;
+                this.panY = 0;
+                this.history = [];
+                this.historyIndex = -1;
+                this.layers = [{ id: 1, name: 'Layer 1', visible: true, locked: false }];
+                this.currentLayer = 1;
+                this.gridSize = 20;
+                this.showGrid = false;
+                this.showRulers = false;
+                this.snapToGrid = false;
+                this.measureMode = false;
+                this.constraintMode = false;
+                this.theme = 'dark';
+
+                this.initCanvas();
+                this.initEventListeners();
+                this.init3D();
+                this.updateLayersPanel();
+                this.saveState();
+            }
+
+            initCanvas() {
+                this.resizeCanvas();
+                window.addEventListener('resize', () => this.resizeCanvas());
+            }
+
+            resizeCanvas() {
+                const container = this.canvas.parentElement;
+                this.canvas.width = container.clientWidth;
+                this.canvas.height = container.clientHeight;
+                this.redraw();
+            }
+
+            initEventListeners() {
+                this.canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e));
+                this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
+                this.canvas.addEventListener('mouseup', () => this.handleMouseUp());
+                this.canvas.addEventListener('dblclick', (e) => this.handleDoubleClick(e));
+
+                document.addEventListener('keydown', (e) => this.handleKeyDown(e));
+
+                // Tool buttons
+                document.getElementById('select-btn').addEventListener('click', () => this.setTool('select'));
+                document.getElementById('line-btn').addEventListener('click', () => this.setTool('line'));
+                document.getElementById('circle-btn').addEventListener('click', () => this.setTool('circle'));
+                document.getElementById('rect-btn').addEventListener('click', () => this.setTool('rectangle'));
+                document.getElementById('text-btn').addEventListener('click', () => this.setTool('text'));
+
+                // Ribbon buttons
+                document.getElementById('select-tool').addEventListener('click', () => this.setTool('select'));
+                document.getElementById('line-tool').addEventListener('click', () => this.setTool('line'));
+                document.getElementById('circle-tool').addEventListener('click', () => this.setTool('circle'));
+                document.getElementById('rectangle-tool').addEventListener('click', () => this.setTool('rectangle'));
+                document.getElementById('text-tool').addEventListener('click', () => this.setTool('text'));
+                document.getElementById('undo-btn').addEventListener('click', () => this.undo());
+                document.getElementById('redo-btn').addEventListener('click', () => this.redo());
+                document.getElementById('zoom-in').addEventListener('click', () => this.zoomIn());
+                document.getElementById('zoom-out').addEventListener('click', () => this.zoomOut());
+                document.getElementById('fit-to-screen').addEventListener('click', () => this.fitToScreen());
+                document.getElementById('toggle-grid').addEventListener('click', () => this.toggleGrid());
+                document.getElementById('toggle-rulers').addEventListener('click', () => this.toggleRulers());
+                document.getElementById('measure-tool').addEventListener('click', () => this.setTool('measure'));
+                document.getElementById('constraint-tool').addEventListener('click', () => this.setTool('constraint'));
+
+                // Toolbar buttons
+                document.getElementById('undo').addEventListener('click', () => this.undo());
+                document.getElementById('redo').addEventListener('click', () => this.redo());
+                document.getElementById('save-btn').addEventListener('click', () => this.saveProject());
+                document.getElementById('load-btn').addEventListener('click', () => this.loadProject());
+                document.getElementById('new-btn').addEventListener('click', () => this.newProject());
+                document.getElementById('layers-btn').addEventListener('click', () => this.toggleLayersPanel());
+                document.getElementById('properties-btn').addEventListener('click', () => this.togglePropertiesPanel());
+                document.getElementById('theme-toggle').addEventListener('click', () => this.toggleTheme());
+
+                // Color pickers
+                document.getElementById('stroke-color').addEventListener('change', (e) => {
+                    this.strokeColor = e.target.value;
+                    if (this.selectedShape) {
+                        this.selectedShape.strokeColor = this.strokeColor;
+                        this.redraw();
+                        this.updatePropertiesPanel();
+                    }
+                });
+                document.getElementById('fill-color').addEventListener('change', (e) => {
+                    this.fillColor = e.target.value;
+                    if (this.selectedShape) {
+                        this.selectedShape.fillColor = this.fillColor;
+                        this.redraw();
+                        this.updatePropertiesPanel();
+                    }
+                });
+
+                // Line width
+                document.getElementById('line-width').addEventListener('change', (e) => {
+                    this.lineWidth = parseInt(e.target.value);
+                    if (this.selectedShape) {
+                        this.selectedShape.lineWidth = this.lineWidth;
+                        this.redraw();
+                        this.updatePropertiesPanel();
+                    }
+                });
+
+                // Properties panel
+                document.getElementById('prop-x').addEventListener('change', (e) => this.updateShapeProperty('x', parseFloat(e.target.value)));
+                document.getElementById('prop-y').addEventListener('change', (e) => this.updateShapeProperty('y', parseFloat(e.target.value)));
+                document.getElementById('prop-width').addEventListener('change', (e) => this.updateShapeProperty('width', parseFloat(e.target.value)));
+                document.getElementById('prop-height').addEventListener('change', (e) => this.updateShapeProperty('height', parseFloat(e.target.value)));
+                document.getElementById('prop-rotation').addEventListener('change', (e) => this.updateShapeProperty('rotation', parseFloat(e.target.value)));
+                document.getElementById('prop-stroke-color').addEventListener('change', (e) => this.updateShapeProperty('strokeColor', e.target.value));
+                document.getElementById('prop-fill-color').addEventListener('change', (e) => this.updateShapeProperty('fillColor', e.target.value));
+                document.getElementById('prop-line-width').addEventListener('change', (e) => this.updateShapeProperty('lineWidth', parseInt(e.target.value)));
+                document.getElementById('prop-opacity').addEventListener('change', (e) => this.updateShapeProperty('opacity', parseFloat(e.target.value)));
+
+                // Ribbon tabs
+                document.querySelectorAll('.ribbon-tab').forEach(tab => {
+                    tab.addEventListener('click', () => this.switchRibbonTab(tab.dataset.tab));
+                });
+
+                // Command line
+                document.getElementById('command-input').addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        this.executeCommand(e.target.value);
+                        e.target.value = '';
+                        this.hideCommandLine();
+                    } else if (e.key === 'Escape') {
+                        this.hideCommandLine();
+                    }
+                });
+
+                // Context menu
+                document.addEventListener('contextmenu', (e) => this.showContextMenu(e));
+                document.addEventListener('click', () => this.hideContextMenu());
+            }
+
+            init3D() {
+                this.scene3D = new THREE.Scene();
+                this.camera3D = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                this.renderer3D = new THREE.WebGLRenderer({ alpha: true });
+                this.renderer3D.setSize(400, 300);
+                this.renderer3D.domElement.style.position = 'absolute';
+                this.renderer3D.domElement.style.top = '10px';
+                this.renderer3D.domElement.style.right = '260px';
+                this.renderer3D.domElement.style.zIndex = '10';
+                this.renderer3D.domElement.style.border = '1px solid #3e3e42';
+                this.renderer3D.domElement.style.borderRadius = '3px';
+                this.canvas.parentElement.appendChild(this.renderer3D.domElement);
+
+                const geometry = new THREE.BoxGeometry(1, 1, 1);
+                const material = new THREE.MeshBasicMaterial({ color: 0x007acc });
+                this.cube3D = new THREE.Mesh(geometry, material);
+                this.scene3D.add(this.cube3D);
+
+                this.camera3D.position.z = 5;
+
+                this.animate3D();
+            }
+
+            animate3D() {
+                requestAnimationFrame(() => this.animate3D());
+                this.cube3D.rotation.x += 0.01;
+                this.cube3D.rotation.y += 0.01;
+                this.renderer3D.render(this.scene3D, this.camera3D);
+            }
+
+            handleMouseDown(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                const x = (e.clientX - rect.left - this.panX) / this.scale;
+                const y = (e.clientY - rect.top - this.panY) / this.scale;
+
+                if (this.currentTool === 'select') {
+                    this.selectedShape = this.getShapeAt(x, y);
+                    if (this.selectedShape) {
+                        this.offsetX = x - this.selectedShape.x;
+                        this.offsetY = y - this.selectedShape.y;
+                        this.isDrawing = true;
+                        this.updatePropertiesPanel();
+                    } else {
+                        this.selectedShape = null;
+                        this.updatePropertiesPanel();
+                    }
+                    this.redraw();
+                } else if (this.currentTool === 'line') {
+                    this.startX = x;
+                    this.startY = y;
+                    this.isDrawing = true;
+                } else if (this.currentTool === 'circle') {
+                    this.startX = x;
+                    this.startY = y;
+                    this.isDrawing = true;
+                } else if (this.currentTool === 'rectangle') {
+                    this.startX = x;
+                    this.startY = y;
+                    this.isDrawing = true;
+                } else if (this.currentTool === 'text') {
+                    const text = prompt('Enter text:');
+                    if (text) {
+                        this.addShape({
+                            type: 'text',
+                            x: x,
+                            y: y,
+                            text: text,
+                            fontSize: 16,
+                            strokeColor: this.strokeColor,
+                            fillColor: this.fillColor,
+                            lineWidth: this.lineWidth,
+                            layer: this.currentLayer
+                        });
+                    }
+                } else if (this.currentTool === 'measure') {
+                    if (!this.measureStart) {
+                        this.measureStart = { x, y };
+                        this.showNotification('Click to set end point');
+                    } else {
+                        const distance = Math.sqrt(Math.pow(x - this.measureStart.x, 2) + Math.pow(y - this.measureStart.y, 2));
+                        this.showMeasurement(this.measureStart.x, this.measureStart.y, x, y, distance.toFixed(2));
+                        this.measureStart = null;
+                    }
+                } else if (this.currentTool === 'constraint') {
+                    // Implement constraint logic
+                    this.showNotification('Constraint tool not implemented yet');
+                }
+            }
+
+            handleMouseMove(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                const x = (e.clientX - rect.left - this.panX) / this.scale;
+                const y = (e.clientY - rect.top - this.panY) / this.scale;
+
+                document.getElementById('coordinates').textContent = `X: ${x.toFixed(2)}, Y: ${y.toFixed(2)}`;
+
+                if (this.snapToGrid) {
+                    this.showSnapIndicator(x, y);
+                }
+
+                if (this.isDrawing) {
+                    if (this.currentTool === 'select' && this.selectedShape) {
+                        this.selectedShape.x = x - this.offsetX;
+                        this.selectedShape.y = y - this.offsetY;
+                        this.redraw();
+                        this.updatePropertiesPanel();
+                    } else if (this.currentTool === 'line') {
+                        this.redraw();
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(this.startX * this.scale + this.panX, this.startY * this.scale + this.panY);
+                        this.ctx.lineTo(x * this.scale + this.panX, y * this.scale + this.panY);
+                        this.ctx.strokeStyle = this.strokeColor;
+                        this.ctx.lineWidth = this.lineWidth;
+                        this.ctx.stroke();
+                    } else if (this.currentTool === 'circle') {
+                        this.redraw();
+                        const radius = Math.sqrt(Math.pow(x - this.startX, 2) + Math.pow(y - this.startY, 2));
+                        this.ctx.beginPath();
+                        this.ctx.arc(this.startX * this.scale + this.panX, this.startY * this.scale + this.panY, radius * this.scale, 0, 2 * Math.PI);
+                        this.ctx.strokeStyle = this.strokeColor;
+                        this.ctx.lineWidth = this.lineWidth;
+                        this.ctx.stroke();
+                    } else if (this.currentTool === 'rectangle') {
+                        this.redraw();
+                        const width = x - this.startX;
+                        const height = y - this.startY;
+                        this.ctx.strokeStyle = this.strokeColor;
+                        this.ctx.lineWidth = this.lineWidth;
+                        this.ctx.strokeRect(this.startX * this.scale + this.panX, this.startY * this.scale + this.panY, width * this.scale, height * this.scale);
+                    }
+                }
+            }
+
+            handleMouseUp() {
+                if (this.isDrawing) {
+                    if (this.currentTool === 'line') {
+                        const rect = this.canvas.getBoundingClientRect();
+                        const x = (event.clientX - rect.left - this.panX) / this.scale;
+                        const y = (event.clientY - rect.top - this.panY) / this.scale;
+                        this.addShape({
+                            type: 'line',
+                            x1: this.startX,
+                            y1: this.startY,
+                            x2: x,
+                            y2: y,
+                            strokeColor: this.strokeColor,
+                            lineWidth: this.lineWidth,
+                            layer: this.currentLayer
+                        });
+                    } else if (this.currentTool === 'circle') {
+                        const rect = this.canvas.getBoundingClientRect();
+                        const x = (event.clientX - rect.left - this.panX) / this.scale;
+                        const y = (event.clientY - rect.top - this.panY) / this.scale;
+                        const radius = Math.sqrt(Math.pow(x - this.startX, 2) + Math.pow(y - this.startY, 2));
+                        this.addShape({
+                            type: 'circle',
+                            x: this.startX,
+                            y: this.startY,
+                            radius: radius,
+                            strokeColor: this.strokeColor,
+                            fillColor: this.fillColor,
+                            lineWidth: this.lineWidth,
+                            layer: this.currentLayer
+                        });
+                    } else if (this.currentTool === 'rectangle') {
+                        const rect = this.canvas.getBoundingClientRect();
+                        const x = (event.clientX - rect.left - this.panX) / this.scale;
+                        const y = (event.clientY - rect.top - this.panY) / this.scale;
+                        const width = x - this.startX;
+                        const height = y - this.startY;
+                        this.addShape({
+                            type: 'rectangle',
+                            x: this.startX,
+                            y: this.startY,
+                            width: width,
+                            height: height,
+                            strokeColor: this.strokeColor,
+                            fillColor: this.fillColor,
+                            lineWidth: this.lineWidth,
+                            layer: this.currentLayer
+                        });
+                    }
+                    this.saveState();
+                }
+                this.isDrawing = false;
+            }
+
+            handleDoubleClick(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                const x = (e.clientX - rect.left - this.panX) / this.scale;
+                const y = (e.clientY - rect.top - this.panY) / this.scale;
+
+                const shape = this.getShapeAt(x, y);
+                if (shape && shape.type === 'text') {
+                    const newText = prompt('Edit text:', shape.text);
+                    if (newText !== null) {
+                        shape.text = newText;
+                        this.redraw();
+                        this.saveState();
+                    }
+                }
+            }
+
+            handleKeyDown(e) {
+                if (e.ctrlKey || e.metaKey) {
+                    switch (e.key) {
+                        case 'z':
+                            e.preventDefault();
+                            this.undo();
+                            break;
+                        case 'y':
+                            e.preventDefault();
+                            this.redo();
+                            break;
+                        case 's':
+                            e.preventDefault();
+                            this.saveProject();
+                            break;
+                        case 'o':
+                            e.preventDefault();
+                            this.loadProject();
+                            break;
+                        case 'n':
+                            e.preventDefault();
+                            this.newProject();
+                            break;
+                    }
+                } else {
+                    switch (e.key) {
+                        case 'Delete':
+                        case 'Backspace':
+                            if (this.selectedShape) {
+                                this.deleteShape(this.selectedShape);
+                            }
+                            break;
+                        case 'Escape':
+                            this.selectedShape = null;
+                            this.redraw();
+                            this.updatePropertiesPanel();
+                            break;
+                        case ':':
+                            this.showCommandLine();
+                            e.preventDefault();
+                            break;
+                    }
+                }
+            }
+
+            setTool(tool) {
+                this.currentTool = tool;
+                this.selectedShape = null;
+                this.measureStart = null;
+                document.querySelectorAll('.tool-btn, .ribbon-btn').forEach(btn => btn.classList.remove('active'));
+                document.querySelectorAll(`#${tool}-btn, #${tool}-tool`).forEach(btn => btn.classList.add('active'));
+                this.updateStatus(`Tool: ${tool}`);
+                this.redraw();
+                this.updatePropertiesPanel();
+            }
+
+            addShape(shape) {
+                shape.id = Date.now();
+                shape.opacity = shape.opacity || 1;
+                shape.rotation = shape.rotation || 0;
+                this.shapes.push(shape);
+                this.redraw();
+            }
+
+            deleteShape(shape) {
+                const index = this.shapes.indexOf(shape);
+                if (index > -1) {
+                    this.shapes.splice(index, 1);
+                    this.selectedShape = null;
+                    this.redraw();
+                    this.updatePropertiesPanel();
+                    this.saveState();
+                }
+            }
+
+            getShapeAt(x, y) {
+                for (let i = this.shapes.length - 1; i >= 0; i--) {
+                    const shape = this.shapes[i];
+                    if (this.isPointInShape(x, y, shape)) {
+                        return shape;
+                    }
+                }
+                return null;
+            }
+
+            isPointInShape(x, y, shape) {
+                switch (shape.type) {
+                    case 'line':
+                        return this.isPointNearLine(x, y, shape);
+                    case 'circle':
+                        const distance = Math.sqrt(Math.pow(x - shape.x, 2) + Math.pow(y - shape.y, 2));
+                        return Math.abs(distance - shape.radius) < 5 / this.scale;
+                    case 'rectangle':
+                        return x >= shape.x && x <= shape.x + shape.width && y >= shape.y && y <= shape.y + shape.height;
+                    case 'text':
+                        this.ctx.font = `${shape.fontSize}px Arial`;
+                        const metrics = this.ctx.measureText(shape.text);
+                        return x >= shape.x && x <= shape.x + metrics.width && y >= shape.y - shape.fontSize && y <= shape.y;
+                    default:
+                        return false;
+                }
+            }
+
+            isPointNearLine(x, y, line) {
+                const A = x - line.x1;
+                const B = y - line.y1;
+                const C = line.x2 - line.x1;
+                const D = line.y2 - line.y1;
+
+                const dot = A * C + B * D;
+                const lenSq = C * C + D * D;
+                let param = -1;
+                if (lenSq !== 0) {
+                    param = dot / lenSq;
+                }
+
+                let xx, yy;
+                if (param < 0) {
+                    xx = line.x1;
+                    yy = line.y1;
+                } else if (param > 1) {
+                    xx = line.x2;
+                    yy = line.y2;
+                } else {
+                    xx = line.x1 + param * C;
+                    yy = line.y1 + param * D;
+                }
+
+                const dx = x - xx;
+                const dy = y - yy;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                return distance < 5 / this.scale;
+            }
+
+            redraw() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                this.ctx.save();
+                this.ctx.translate(this.panX, this.panY);
+                this.ctx.scale(this.scale, this.scale);
+
+                if (this.showGrid) {
+                    this.drawGrid();
+                }
+
+                this.shapes.forEach(shape => {
+                    if (this.layers.find(l => l.id === shape.layer && l.visible)) {
+                        this.drawShape(shape);
+                    }
+                });
+
+                if (this.selectedShape) {
+                    this.drawSelectionHandles(this.selectedShape);
+                }
+
+                this.ctx.restore();
+
+                if (this.showRulers) {
+                    this.drawRulers();
+                }
+            }
+
+            drawShape(shape) {
+                this.ctx.save();
+                this.ctx.globalAlpha = shape.opacity || 1;
+                this.ctx.translate(shape.x || 0, shape.y || 0);
+                this.ctx.rotate((shape.rotation || 0) * Math.PI / 180);
+
+                switch (shape.type) {
+                    case 'line':
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(0, 0);
+                        this.ctx.lineTo(shape.x2 - shape.x1, shape.y2 - shape.y1);
+                        this.ctx.strokeStyle = shape.strokeColor;
+                        this.ctx.lineWidth = shape.lineWidth;
+                        this.ctx.stroke();
+                        break;
+                    case 'circle':
+                        this.ctx.beginPath();
+                        this.ctx.arc(0, 0, shape.radius, 0, 2 * Math.PI);
+                        this.ctx.fillStyle = shape.fillColor;
+                        this.ctx.strokeStyle = shape.strokeColor;
+                        this.ctx.lineWidth = shape.lineWidth;
+                        this.ctx.fill();
+                        this.ctx.stroke();
+                        break;
+                    case 'rectangle':
+                        this.ctx.fillStyle = shape.fillColor;
+                        this.ctx.strokeStyle = shape.strokeColor;
+                        this.ctx.lineWidth = shape.lineWidth;
+                        this.ctx.fillRect(0, 0, shape.width, shape.height);
+                        this.ctx.strokeRect(0, 0, shape.width, shape.height);
+                        break;
+                    case 'text':
+                        this.ctx.font = `${shape.fontSize || 16}px Arial`;
+                        this.ctx.fillStyle = shape.fillColor;
+                        this.ctx.strokeStyle = shape.strokeColor;
+                        this.ctx.lineWidth = shape.lineWidth;
+                        this.ctx.fillText(shape.text, 0, 0);
+                        if (shape.lineWidth > 0) {
+                            this.ctx.strokeText(shape.text, 0, 0);
+                        }
+                        break;
+                }
+
+                this.ctx.restore();
+            }
+
+            drawSelectionHandles(shape) {
+                const handles = this.getSelectionHandles(shape);
+                handles.forEach(handle => {
+                    this.ctx.fillStyle = '#007acc';
+                    this.ctx.fillRect(handle.x - 4, handle.y - 4, 8, 8);
+                });
+            }
+
+            getSelectionHandles(shape) {
+                const handles = [];
+                switch (shape.type) {
+                    case 'line':
+                        handles.push({ x: shape.x1, y: shape.y1 }, { x: shape.x2, y: shape.y2 });
+                        break;
+                    case 'circle':
+                        handles.push({ x: shape.x + shape.radius, y: shape.y });
+                        break;
+                    case 'rectangle':
+                        handles.push(
+                            { x: shape.x, y: shape.y },
+                            { x: shape.x + shape.width, y: shape.y },
+                            { x: shape.x + shape.width, y: shape.y + shape.height },
+                            { x: shape.x, y: shape.y + shape.height }
+                        );
+                        break;
+                    case 'text':
+                        this.ctx.font = `${shape.fontSize}px Arial`;
+                        const metrics = this.ctx.measureText(shape.text);
+                        handles.push(
+                            { x: shape.x, y: shape.y },
+                            { x: shape.x + metrics.width, y: shape.y },
+                            { x: shape.x + metrics.width, y: shape.y - shape.fontSize },
+                            { x: shape.x, y: shape.y - shape.fontSize }
+                        );
+                        break;
+                }
+                return handles;
+            }
+
+            drawGrid() {
+                this.ctx.strokeStyle = '#e1e1e1';
+                this.ctx.lineWidth = 1;
+
+                const startX = -this.panX / this.scale;
+                const startY = -this.panY / this.scale;
+                const endX = (this.canvas.width - this.panX) / this.scale;
+                const endY = (this.canvas.height - this.panY) / this.scale;
+
+                for (let x = Math.floor(startX / this.gridSize) * this.gridSize; x <= endX; x += this.gridSize) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x, startY);
+                    this.ctx.lineTo(x, endY);
+                    this.ctx.stroke();
+                }
+
+                for (let y = Math.floor(startY / this.gridSize) * this.gridSize; y <= endY; y += this.gridSize) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(startX, y);
+                    this.ctx.lineTo(endX, y);
+                    this.ctx.stroke();
+                }
+            }
+
+            drawRulers() {
+                // Horizontal ruler
+                const rulerH = document.createElement('div');
+                rulerH.className = 'ruler horizontal';
+                rulerH.textContent = Math.round(-this.panX / this.scale) + 'px';
+                this.canvas.parentElement.appendChild(rulerH);
+
+                // Vertical ruler
+                const rulerV = document.createElement('div');
+                rulerV.className = 'ruler vertical';
+                rulerV.textContent = Math.round(-this.panY / this.scale) + 'px';
+                this.canvas.parentElement.appendChild(rulerV);
+
+                // Clean up rulers after redraw
+                setTimeout(() => {
+                    const rulers = this.canvas.parentElement.querySelectorAll('.ruler');
+                    rulers.forEach(ruler => ruler.remove());
+                }, 100);
+            }
+
+            showMeasurement(x1, y1, x2, y2, distance) {
+                const measurement = document.createElement('div');
+                measurement.className = 'measurement';
+                measurement.textContent = `${distance}px`;
+                measurement.style.left = `${(x1 + x2) / 2 * this.scale + this.panX}px`;
+                measurement.style.top = `${(y1 + y2) / 2 * this.scale + this.panY}px`;
+                this.canvas.parentElement.appendChild(measurement);
+
+                setTimeout(() => measurement.remove(), 3000);
+            }
+
+            showSnapIndicator(x, y) {
+                const indicator = document.getElementById('snap-indicator');
+                const snappedX = Math.round(x / this.gridSize) * this.gridSize;
+                const snappedY = Math.round(y / this.gridSize) * this.gridSize;
+                indicator.style.left = `${snappedX * this.scale + this.panX - 4}px`;
+                indicator.style.top = `${snappedY * this.scale + this.panY - 4}px`;
+                indicator.style.display = 'block';
+            }
+
+            updatePropertiesPanel() {
+                if (this.selectedShape) {
+                    document.getElementById('prop-x').value = this.selectedShape.x || 0;
+                    document.getElementById('prop-y').value = this.selectedShape.y || 0;
+                    document.getElementById('prop-width').value = this.selectedShape.width || 0;
+                    document.getElementById('prop-height').value = this.selectedShape.height || 0;
+                    document.getElementById('prop-rotation').value = this.selectedShape.rotation || 0;
+                    document.getElementById('prop-stroke-color').value = this.selectedShape.strokeColor || '#000000';
+                    document.getElementById('prop-fill-color').value = this.selectedShape.fillColor || '#ffffff';
+                    document.getElementById('prop-line-width').value = this.selectedShape.lineWidth || 2;
+                    document.getElementById('prop-opacity').value = this.selectedShape.opacity || 1;
+                } else {
+                    document.getElementById('prop-x').value = '';
+                    document.getElementById('prop-y').value = '';
+                    document.getElementById('prop-width').value = '';
+                    document.getElementById('prop-height').value = '';
+                    document.getElementById('prop-rotation').value = '';
+                    document.getElementById('prop-stroke-color').value = '#000000';
+                    document.getElementById('prop-fill-color').value = '#ffffff';
+                    document.getElementById('prop-line-width').value = 2;
+                    document.getElementById('prop-opacity').value = 1;
+                }
+            }
+
+            updateShapeProperty(property, value) {
+                if (this.selectedShape) {
+                    this.selectedShape[property] = value;
+                    this.redraw();
+                    this.saveState();
+                }
+            }
+
+            updateLayersPanel() {
+                const layersList = document.getElementById('layers-list');
+                layersList.innerHTML = '';
+                this.layers.forEach(layer => {
+                    const layerItem = document.createElement('div');
+                    layerItem.className = `layer-item ${layer.id === this.currentLayer ? 'active' : ''}`;
+                    layerItem.textContent = layer.name;
+                    layerItem.addEventListener('click', () => {
+                        this.currentLayer = layer.id;
+                        this.updateLayersPanel();
+                    });
+                    layersList.appendChild(layerItem);
+                });
+            }
+
+            toggleLayersPanel() {
+                const panel = document.getElementById('layers-panel');
+                panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+            }
+
+            togglePropertiesPanel() {
+                const panel = document.getElementById('properties-panel');
+                panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+            }
+
+            toggleTheme() {
+                this.theme = this.theme === 'dark' ? 'light' : 'dark';
+                document.body.className = `theme-${this.theme}`;
+                document.getElementById('theme-toggle').textContent = this.theme === 'dark' ? 'Light Theme' : 'Dark Theme';
+            }
+
+            switchRibbonTab(tab) {
+                document.querySelectorAll('.ribbon-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.ribbon-panel').forEach(p => p.classList.remove('show'));
+                document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+                document.getElementById(`${tab}-panel`).classList.add('show');
+            }
+
+            showCommandLine() {
+                const commandLine = document.getElementById('command-line');
+                commandLine.classList.add('show');
+                document.getElementById('command-input').focus();
+            }
+
+            hideCommandLine() {
+                document.getElementById('command-line').classList.remove('show');
+            }
+
+            executeCommand(command) {
+                const parts = command.split(' ');
+                const cmd = parts[0].toLowerCase();
+                const args = parts.slice(1);
+
+                switch (cmd) {
+                    case 'line':
+                        this.setTool('line');
+                        break;
+                    case 'circle':
+                        this.setTool('circle');
+                        break;
+                    case 'rect':
+                    case 'rectangle':
+                        this.setTool('rectangle');
+                        break;
+                    case 'text':
+                        this.setTool('text');
+                        break;
+                    case 'select':
+                        this.setTool('select');
+                        break;
+                    case 'zoom':
+                        if (args[0]) {
+                            this.scale = parseFloat(args[0]);
+                            this.redraw();
+                        }
+                        break;
+                    case 'grid':
+                        this.showGrid = !this.showGrid;
+                        this.redraw();
+                        break;
+                    case 'save':
+                        this.saveProject();
+                        break;
+                    case 'load':
+                        this.loadProject();
+                        break;
+                    case 'new':
+                        this.newProject();
+                        break;
+                    default:
+                        this.showNotification(`Unknown command: ${cmd}`);
+                }
+            }
+
+            showContextMenu(e) {
+                e.preventDefault();
+                const menu = document.getElementById('context-menu');
+                menu.style.left = `${e.clientX}px`;
+                menu.style.top = `${e.clientY}px`;
+                menu.style.display = 'block';
+
+                menu.innerHTML = `
+                    <div class="context-menu-item" onclick="app.cutShape()">Cut</div>
+                    <div class="context-menu-item" onclick="app.copyShape()">Copy</div>
+                    <div class="context-menu-item" onclick="app.pasteShape()">Paste</div>
+                    <div class="context-menu-item" onclick="app.deleteShape(app.selectedShape)">Delete</div>
+                `;
+            }
+
+            hideContextMenu() {
+                document.getElementById('context-menu').style.display = 'none';
+            }
+
+            cutShape() {
+                if (this.selectedShape) {
+                    this.clipboard = JSON.parse(JSON.stringify(this.selectedShape));
+                    this.deleteShape(this.selectedShape);
+                }
+            }
+
+            copyShape() {
+                if (this.selectedShape) {
+                    this.clipboard = JSON.parse(JSON.stringify(this.selectedShape));
+                }
+            }
+
+            pasteShape() {
+                if (this.clipboard) {
+                    const newShape = JSON.parse(JSON.stringify(this.clipboard));
+                    newShape.x += 10;
+                    newShape.y += 10;
+                    newShape.id = Date.now();
+                    this.addShape(newShape);
+                    this.saveState();
+                }
+            }
+
+            zoomIn() {
+                this.scale *= 1.2;
+                this.redraw();
+            }
+
+            zoomOut() {
+                this.scale /= 1.2;
+                this.redraw();
+            }
+
+            fitToScreen() {
+                if (this.shapes.length > 0) {
+                    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                    this.shapes.forEach(shape => {
+                        switch (shape.type) {
+                            case 'line':
+                                minX = Math.min(minX, shape.x1, shape.x2);
+                                minY = Math.min(minY, shape.y1, shape.y2);
+                                maxX = Math.max(maxX, shape.x1, shape.x2);
+                                maxY = Math.max(maxY, shape.y1, shape.y2);
+                                break;
+                            case 'circle':
+                                minX = Math.min(minX, shape.x - shape.radius);
+                                minY = Math.min(minY, shape.y - shape.radius);
+                                maxX = Math.max(maxX, shape.x + shape.radius);
+                                maxY = Math.max(maxY, shape.y + shape.radius);
+                                break;
+                            case 'rectangle':
+                                minX = Math.min(minX, shape.x);
+                                minY = Math.min(minY, shape.y);
+                                maxX = Math.max(maxX, shape.x + shape.width);
+                                maxY = Math.max(maxY, shape.y + shape.height);
+                                break;
+                            case 'text':
+                                this.ctx.font = `${shape.fontSize}px Arial`;
+                                const metrics = this.ctx.measureText(shape.text);
+                                minX = Math.min(minX, shape.x);
+                                minY = Math.min(minY, shape.y - shape.fontSize);
+                                maxX = Math.max(maxX, shape.x + metrics.width);
+                                maxY = Math.max(maxY, shape.y);
+                                break;
+                        }
+                    });
+
+                    const padding = 50;
+                    const contentWidth = maxX - minX + padding * 2;
+                    const contentHeight = maxY - minY + padding * 2;
+                    const scaleX = this.canvas.width / contentWidth;
+                    const scaleY = this.canvas.height / contentHeight;
+                    this.scale = Math.min(scaleX, scaleY);
+                    this.panX = -minX * this.scale + padding;
+                    this.panY = -minY * this.scale + padding;
+                    this.redraw();
+                }
+            }
+
+            toggleGrid() {
+                this.showGrid = !this.showGrid;
+                this.redraw();
+            }
+
+            toggleRulers() {
+                this.showRulers = !this.showRulers;
+                this.redraw();
+            }
+
+            saveState() {
+                this.history = this.history.slice(0, this.historyIndex + 1);
+                this.history.push(JSON.stringify(this.shapes));
+                this.historyIndex++;
+                if (this.history.length > 50) {
+                    this.history.shift();
+                    this.historyIndex--;
+                }
+            }
+
+            undo() {
+                if (this.historyIndex > 0) {
+                    this.historyIndex--;
+                    this.shapes = JSON.parse(this.history[this.historyIndex]);
+                    this.selectedShape = null;
+                    this.redraw();
+                    this.updatePropertiesPanel();
+                }
+            }
+
+            redo() {
+                if (this.historyIndex < this.history.length - 1) {
+                    this.historyIndex++;
+                    this.shapes = JSON.parse(this.history[this.historyIndex]);
+                    this.selectedShape = null;
+                    this.redraw();
+                    this.updatePropertiesPanel();
+                }
+            }
+
+            saveProject() {
+                const data = {
+                    shapes: this.shapes,
+                    layers: this.layers,
+                    currentLayer: this.currentLayer,
+                    scale: this.scale,
+                    panX: this.panX,
+                    panY: this.panY,
+                    showGrid: this.showGrid,
+                    showRulers: this.showRulers,
+                    theme: this.theme
+                };
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'project.procad';
+                a.click();
+                URL.revokeObjectURL(url);
+                this.showNotification('Project saved');
+            }
+
+            loadProject() {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.procad';
+                input.onchange = (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                            try {
+                                const data = JSON.parse(event.target.result);
+                                this.shapes = data.shapes || [];
+                                this.layers = data.layers || this.layers;
+                                this.currentLayer = data.currentLayer || 1;
+                                this.scale = data.scale || 1;
+                                this.panX = data.panX || 0;
+                                this.panY = data.panY || 0;
+                                this.showGrid = data.showGrid || false;
+                                this.showRulers = data.showRulers || false;
+                                this.theme = data.theme || 'dark';
+                                document.body.className = `theme-${this.theme}`;
+                                document.getElementById('theme-toggle').textContent = this.theme === 'dark' ? 'Light Theme' : 'Dark Theme';
+                                this.selectedShape = null;
+                                this.redraw();
+                                this.updatePropertiesPanel();
+                                this.updateLayersPanel();
+                                this.saveState();
+                                this.showNotification('Project loaded');
+                            } catch (error) {
+                                this.showNotification('Error loading project');
+                            }
+                        };
+                        reader.readAsText(file);
+                    }
+                };
+                input.click();
+            }
+
+            newProject() {
+                if (confirm('Are you sure you want to start a new project? All unsaved changes will be lost.')) {
+                    this.shapes = [];
+                    this.selectedShape = null;
+                    this.history = [];
+                    this.historyIndex = -1;
+                    this.scale = 1;
+                    this.panX = 0;
+                    this.panY = 0;
+                    this.layers = [{ id: 1, name: 'Layer 1', visible: true, locked: false }];
+                    this.currentLayer = 1;
+                    this.showGrid = false;
+                    this.showRulers = false;
+                    this.theme = 'dark';
+                    document.body.className = 'theme-dark';
+                    document.getElementById('theme-toggle').textContent = 'Light Theme';
+                    this.redraw();
+                    this.updatePropertiesPanel();
+                    this.updateLayersPanel();
+                    this.saveState();
+                    this.showNotification('New project created');
+                }
+            }
+
+            updateStatus(text) {
+                document.getElementById('status-text').textContent = text;
+            }
+
+            showNotification(message) {
+                const notification = document.getElementById('notification');
+                notification.textContent = message;
+                notification.style.display = 'block';
+                setTimeout(() => {
+                    notification.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        const app = new ProCAD();
+        window.app = app; // Make app globally accessible for context menu
+    </script>
+</body>
+</html>
